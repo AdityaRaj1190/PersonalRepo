@@ -1,4 +1,4 @@
-# Hindu Birth Chart Generator
+# Birth Chart Generator
 
 A client-only React app that generates a sidereal (Vedic) birth chart — a
 Kundli — from a name, place of birth, date of birth and time of birth.

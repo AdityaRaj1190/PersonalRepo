@@ -29,7 +29,7 @@ export default function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <h1>Hindu Birth Chart Generator</h1>
+        <h1>Birth Chart Generator</h1>
         <p>Generate a sidereal (Vedic) Kundli with Lahiri ayanamsa from name, place, date and time of birth.</p>
       </header>
 
