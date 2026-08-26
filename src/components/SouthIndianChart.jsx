@@ -1,5 +1,6 @@
 import { RASHIS } from '../lib/astro';
-import { SOUTH_INDIAN_RASHI_CELLS, PLANET_ABBR } from '../lib/chartLayout';
+import { SOUTH_INDIAN_RASHI_CELLS } from '../lib/chartLayout';
+import PlanetGlyphs from './PlanetGlyphs';
 
 const CELL = 75; // 300 / 4
 
@@ -47,10 +48,9 @@ export default function SouthIndianChart({ chart }) {
                 x={x + CELL / 2}
                 y={y + 32 + i * 14}
                 textAnchor="middle"
-                className={`chart-planet${p.retrograde ? ' retrograde' : ''}`}
+                className="chart-planet"
               >
-                {PLANET_ABBR[p.planet]}
-                {p.retrograde ? '(R)' : ''}
+                <PlanetGlyphs planet={p} />
               </text>
             ))}
           </g>

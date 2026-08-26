@@ -235,8 +235,50 @@ button[type='submit']:disabled {
   fill: var(--text-h);
 }
 
-.chart-planet.retrograde {
+.glyph-retrograde {
   fill: var(--danger);
+  font-size: 8px;
+}
+
+.glyph-exalted {
+  fill: var(--exalted);
+}
+
+.glyph-debilitated {
+  fill: var(--debilitated);
+}
+
+.glyph-combust {
+  fill: var(--combust);
+}
+
+.chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 16px;
+  font-size: 12px;
+  color: var(--text);
+}
+
+.chart-legend span {
+  font-weight: 700;
+}
+
+.legend-retrograde {
+  color: var(--danger);
+}
+
+.legend-exalted {
+  color: var(--exalted);
+}
+
+.legend-debilitated {
+  color: var(--debilitated);
+}
+
+.legend-combust {
+  color: var(--combust);
 }
 
 .chart-center-label {
