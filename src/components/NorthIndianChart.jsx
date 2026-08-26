@@ -1,4 +1,5 @@
-import { NORTH_INDIAN_HOUSE_SHAPES, PLANET_ABBR } from '../lib/chartLayout';
+import { NORTH_INDIAN_HOUSE_SHAPES } from '../lib/chartLayout';
+import PlanetGlyphs from './PlanetGlyphs';
 
 const OUTER = [[0, 0], [300, 0], [300, 300], [0, 300]];
 const DIAMOND = [[150, 0], [300, 150], [150, 300], [0, 150]];
@@ -41,11 +42,10 @@ export default function NorthIndianChart({ chart }) {
                 key={p.planet}
                 x={lx}
                 y={ly + (house === 1 ? 26 : 13) + i * 12}
-                className={`chart-planet${p.retrograde ? ' retrograde' : ''}`}
+                className="chart-planet"
                 textAnchor="middle"
               >
-                {PLANET_ABBR[p.planet]}
-                {p.retrograde ? '(R)' : ''}
+                <PlanetGlyphs planet={p} />
               </text>
             ))}
           </g>

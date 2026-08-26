@@ -56,6 +56,34 @@ function normalizeDegrees(deg) {
   return d;
 }
 
+/** Sign (rashi index) of exaltation for each graha (classical uchcha rashi). */
+const EXALTATION_RASHI = {
+  Sun: 0, Moon: 1, Mars: 9, Mercury: 5, Jupiter: 3, Venus: 11, Saturn: 6,
+  Rahu: 2, Ketu: 8,
+};
+
+/** Sign (rashi index) of debilitation for each graha (classical neecha rashi). */
+const DEBILITATION_RASHI = {
+  Sun: 6, Moon: 7, Mars: 3, Mercury: 11, Jupiter: 9, Venus: 5, Saturn: 0,
+  Rahu: 8, Ketu: 2,
+};
+
+/** Combustion orb (degrees from the Sun) when direct. */
+const COMBUSTION_ORB = { Moon: 12, Mars: 17, Mercury: 14, Jupiter: 11, Venus: 10, Saturn: 15 };
+/** Tighter combustion orb classically used for Mercury/Venus when retrograde. */
+const COMBUSTION_ORB_RETROGRADE = { Mercury: 12, Venus: 8 };
+
+function angularSeparation(a, b) {
+  const diff = Math.abs(normalizeDegrees(a) - normalizeDegrees(b)) % 360;
+  return diff > 180 ? 360 - diff : diff;
+}
+
+function isCombust(planet, sidereal, sunSidereal, retrograde) {
+  const orb = (retrograde && COMBUSTION_ORB_RETROGRADE[planet]) || COMBUSTION_ORB[planet];
+  if (!orb) return false;
+  return angularSeparation(sidereal, sunSidereal) <= orb;
+}
+
 /** Geocentric apparent tropical ecliptic longitude of a body, in degrees. */
 function tropicalLongitude(planet, date) {
   if (planet === 'Sun') return Astronomy.SunPosition(date).elon;
@@ -137,6 +165,8 @@ export function computeBirthChart(utcDate, latitude, longitude) {
   const ascendantSidereal = normalizeDegrees(ascendantTropical - ayanamsa);
   const ascendantRashi = rashiOf(ascendantSidereal);
 
+  const sunSidereal = normalizeDegrees(tropicalLongitude('Sun', utcDate) - ayanamsa);
+
   const planets = PLANETS.map((planet) => {
     let tropical;
     if (planet === 'Rahu') {
@@ -150,6 +180,10 @@ export function computeBirthChart(utcDate, latitude, longitude) {
     const rashi = rashiOf(sidereal);
     const house = ((rashi - ascendantRashi + 12) % 12) + 1;
     const { index: nakshatraIndex, pada } = nakshatraOf(sidereal);
+    // Rahu/Ketu are conventionally always retrograde in Vedic astrology, so
+    // that state is never called out with "(R)" the way it is for other
+    // planets.
+    const retrograde = planet === 'Rahu' || planet === 'Ketu' ? false : isRetrograde(planet, utcDate);
 
     return {
       planet,
@@ -160,10 +194,10 @@ export function computeBirthChart(utcDate, latitude, longitude) {
       house,
       nakshatra: NAKSHATRAS[nakshatraIndex],
       pada,
-      // Rahu/Ketu are conventionally always retrograde in Vedic astrology, so
-      // that state is never called out with "(R)" the way it is for other
-      // planets.
-      retrograde: planet === 'Rahu' || planet === 'Ketu' ? false : isRetrograde(planet, utcDate),
+      retrograde,
+      exalted: rashi === EXALTATION_RASHI[planet],
+      debilitated: rashi === DEBILITATION_RASHI[planet],
+      combust: planet === 'Sun' ? false : isCombust(planet, sidereal, sunSidereal, retrograde),
     };
   });
 

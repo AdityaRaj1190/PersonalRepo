@@ -27,6 +27,13 @@ export default function ChartDisplay({ chart }) {
       <div className="chart-wrapper">
         {style === 'north' ? <NorthIndianChart chart={chart} /> : <SouthIndianChart chart={chart} />}
       </div>
+
+      <div className="chart-legend">
+        <span className="legend-retrograde">(R)</span> Retrograde
+        <span className="legend-exalted">↑</span> Exalted
+        <span className="legend-debilitated">↓</span> Debilitated
+        <span className="legend-combust">⊙</span> Combust
+      </div>
     </div>
   );
 }
