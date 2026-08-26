@@ -83,9 +83,19 @@ function tropicalAscendant(date, latitude, longitude) {
   const ramcRad = ramc * (Math.PI / 180);
   const latRad = latitude * (Math.PI / 180);
 
+  // Solving "ecliptic point lies on the horizon" gives two antipodal
+  // solutions (the ascendant and the descendant); atan2 alone doesn't tell
+  // us which is which, so we disambiguate using the point's hour angle -
+  // the ascendant is the one currently east of the meridian (negative H).
   const y = -Math.cos(ramcRad);
   const x = Math.sin(eps) * Math.tan(latRad) + Math.cos(eps) * Math.sin(ramcRad);
-  const ascRad = Math.atan2(y, x);
+  const lambda0 = Math.atan2(y, x);
+
+  const ra0 = Math.atan2(Math.sin(lambda0) * Math.cos(eps), Math.cos(lambda0));
+  const hourAngle = normalizeDegrees(ramc - ra0 * (180 / Math.PI));
+  const isDescendant = hourAngle < 180; // 0-180 => still-positive H => descendant
+
+  const ascRad = isDescendant ? lambda0 + Math.PI : lambda0;
   return normalizeDegrees(ascRad * (180 / Math.PI));
 }
 
@@ -150,7 +160,10 @@ export function computeBirthChart(utcDate, latitude, longitude) {
       house,
       nakshatra: NAKSHATRAS[nakshatraIndex],
       pada,
-      retrograde: planet === 'Rahu' || planet === 'Ketu' ? true : isRetrograde(planet, utcDate),
+      // Rahu/Ketu are conventionally always retrograde in Vedic astrology, so
+      // that state is never called out with "(R)" the way it is for other
+      // planets.
+      retrograde: planet === 'Rahu' || planet === 'Ketu' ? false : isRetrograde(planet, utcDate),
     };
   });
 
