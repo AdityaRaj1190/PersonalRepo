@@ -1,0 +1,290 @@
+.app {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 32px 20px 64px;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.app-header {
+  text-align: center;
+}
+
+.app-header h1 {
+  font-size: 32px;
+}
+
+.app-header p {
+  color: var(--text);
+}
+
+.app-main {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.form-section,
+.result-section {
+  background: var(--bg-alt);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px;
+}
+
+.birth-chart-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  position: relative;
+  text-align: left;
+}
+
+.field-row {
+  display: flex;
+  gap: 16px;
+}
+
+.field-row .field {
+  flex: 1;
+}
+
+label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+input {
+  font: inherit;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text-h);
+}
+
+input:focus {
+  outline: none;
+  border-color: var(--accent-border);
+  box-shadow: 0 0 0 3px var(--accent-bg);
+}
+
+.field-hint {
+  font-size: 12px;
+  color: var(--text);
+  opacity: 0.75;
+}
+
+.location-autocomplete {
+  position: relative;
+}
+
+.location-dropdown {
+  position: absolute;
+  top: calc(100% - 20px);
+  left: 0;
+  right: 0;
+  z-index: 10;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 4px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.location-dropdown li {
+  margin: 0;
+}
+
+.location-dropdown button {
+  width: 100%;
+  text-align: left;
+  padding: 8px 10px;
+  border: none;
+  background: transparent;
+  color: var(--text-h);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.location-dropdown button:hover {
+  background: var(--accent-bg);
+}
+
+.location-status {
+  padding: 8px 10px;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.form-error {
+  color: var(--danger);
+  font-size: 14px;
+}
+
+button[type='submit'] {
+  font: inherit;
+  font-weight: 600;
+  padding: 12px 20px;
+  border: none;
+  border-radius: 8px;
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+}
+
+button[type='submit']:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.result-section h2 {
+  text-align: center;
+}
+
+.result-meta {
+  text-align: center;
+  color: var(--text);
+  font-size: 14px;
+  margin-bottom: 20px;
+}
+
+.chart-display {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.chart-style-toggle {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.chart-style-toggle button {
+  font: inherit;
+  font-size: 13px;
+  padding: 8px 16px;
+  border: none;
+  background: var(--bg);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.chart-style-toggle button.active {
+  background: var(--accent);
+  color: #fff;
+}
+
+.chart-wrapper {
+  width: 100%;
+  max-width: 420px;
+}
+
+.chart-svg {
+  width: 100%;
+  height: auto;
+  background: var(--bg);
+  border-radius: 8px;
+}
+
+.chart-outline {
+  fill: none;
+  stroke: var(--border);
+  stroke-width: 1.5;
+}
+
+.chart-rashi-number {
+  font-size: 11px;
+  fill: var(--text);
+  font-weight: 600;
+}
+
+.chart-asc-label {
+  font-size: 9px;
+  fill: var(--accent);
+  font-weight: 700;
+}
+
+.chart-asc-marker {
+  stroke: var(--accent);
+  stroke-width: 2;
+}
+
+.chart-planet {
+  font-size: 10px;
+  fill: var(--text-h);
+}
+
+.chart-planet.retrograde {
+  fill: var(--danger);
+}
+
+.chart-center-label {
+  font-size: 10px;
+  fill: var(--text);
+  opacity: 0.7;
+}
+
+.planet-table-wrapper {
+  overflow-x: auto;
+}
+
+.ascendant-summary {
+  text-align: center;
+  margin-bottom: 16px;
+  font-size: 15px;
+  color: var(--text-h);
+}
+
+.ayanamsa-note {
+  color: var(--text);
+  font-size: 13px;
+}
+
+.planet-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.planet-table th,
+.planet-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+}
+
+.planet-table th {
+  color: var(--text);
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.app-footer {
+  text-align: center;
+  font-size: 12px;
+  color: var(--text);
+  opacity: 0.75;
+}
