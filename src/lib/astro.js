@@ -165,6 +165,18 @@ export function tithiOf(moonSidereal, sunSidereal) {
   return { index: tithiNumber, paksha, name };
 }
 
+/**
+ * Parashari graha drishti (aspect): every planet fully aspects the house
+ * 7 signs from its own; Mars, Jupiter and Saturn additionally cast special
+ * aspects (Mars: 4th/8th, Jupiter: 5th/9th, Saturn: 3rd/10th from itself).
+ */
+const SPECIAL_ASPECT_OFFSETS = { Mars: [3, 7], Jupiter: [4, 8], Saturn: [2, 9] };
+
+function aspectedHouses(house, planet) {
+  const offsets = new Set([6, ...(SPECIAL_ASPECT_OFFSETS[planet] ?? [])]);
+  return [...offsets].map((offset) => ((house - 1 + offset) % 12) + 1).sort((a, b) => a - b);
+}
+
 export function nakshatraOf(siderealLongitude) {
   const span = 360 / 27;
   const lon = normalizeDegrees(siderealLongitude);
@@ -200,6 +212,7 @@ export function computeBirthChart(utcDate, latitude, longitude) {
     }
     const sidereal = normalizeDegrees(tropical - ayanamsa);
     const rashi = rashiOf(sidereal);
+    const degreeInRashi = sidereal % 30;
     const house = ((rashi - ascendantRashi + 12) % 12) + 1;
     const { index: nakshatraIndex, pada } = nakshatraOf(sidereal);
     // Rahu/Ketu are conventionally always retrograde in Vedic astrology, so
@@ -210,7 +223,7 @@ export function computeBirthChart(utcDate, latitude, longitude) {
     return {
       planet,
       longitude: sidereal,
-      degreeInRashi: sidereal % 30,
+      degreeInRashi,
       rashi,
       rashiName: RASHIS[rashi],
       house,
@@ -220,6 +233,10 @@ export function computeBirthChart(utcDate, latitude, longitude) {
       exalted: rashi === EXALTATION_RASHI[planet],
       debilitated: rashi === DEBILITATION_RASHI[planet],
       combust: planet === 'Sun' ? false : isCombust(planet, sidereal, sunSidereal, retrograde),
+      // Vargottama: the planet occupies the same rashi in D1 and D9, a
+      // classical marker of strengthened placement.
+      vargottama: rashi === vargaRashi(rashi, degreeInRashi, 9),
+      aspects: aspectedHouses(house, planet),
     };
   });
 
@@ -304,6 +321,10 @@ export function computeDivisionalChart(chart, varga) {
       // carrying the D1 combust flag into a divisional chart would be
       // showing a relationship the varga sign doesn't actually reflect.
       combust: false,
+      // Vargottama is a fixed D1-vs-D9 fact about the birth, not something
+      // that varies per varga, so it's carried over as-is.
+      vargottama: p.vargottama,
+      aspects: aspectedHouses(house, p.planet),
     };
   });
 

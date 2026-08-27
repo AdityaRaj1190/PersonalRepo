@@ -12,19 +12,20 @@ function statusBadges(p) {
 export default function PlanetTable({ chart }) {
   const hasDegrees = chart.ascendant.degreeInRashi !== undefined;
 
+  const ascendantRow = {
+    planet: 'Ascendant',
+    rashiName: chart.ascendant.rashiName,
+    degreeInRashi: chart.ascendant.degreeInRashi,
+    house: 1,
+    nakshatra: chart.ascendant.nakshatra,
+    pada: chart.ascendant.pada,
+  };
+
   return (
     <div className="planet-table-wrapper">
-      <div className="ascendant-summary">
-        <strong>Ascendant (Lagna):</strong>{' '}
-        {chart.ascendant.rashiName}
-        {hasDegrees && <> {formatDegree(chart.ascendant.degreeInRashi)}</>}
-        {chart.ascendant.nakshatra && (
-          <> &middot; {chart.ascendant.nakshatra} pada {chart.ascendant.pada}</>
-        )}
-        {chart.ayanamsa !== undefined && (
-          <span className="ayanamsa-note"> (Lahiri ayanamsa {formatDegree(chart.ayanamsa)})</span>
-        )}
-      </div>
+      {chart.ayanamsa !== undefined && (
+        <p className="ayanamsa-note">Lahiri ayanamsa {formatDegree(chart.ayanamsa)}</p>
+      )}
 
       <table className="planet-table">
         <thead>
@@ -35,10 +36,23 @@ export default function PlanetTable({ chart }) {
             <th>House</th>
             {hasDegrees && <th>Nakshatra</th>}
             {hasDegrees && <th>Pada</th>}
+            <th>Aspects</th>
+            <th>Vargottama</th>
             <th>Status</th>
           </tr>
         </thead>
         <tbody>
+          <tr className="ascendant-row">
+            <td>{ascendantRow.planet}</td>
+            <td>{ascendantRow.rashiName}</td>
+            {hasDegrees && <td>{formatDegree(ascendantRow.degreeInRashi)}</td>}
+            <td>{ascendantRow.house}</td>
+            {hasDegrees && <td>{ascendantRow.nakshatra}</td>}
+            {hasDegrees && <td>{ascendantRow.pada}</td>}
+            <td>&ndash;</td>
+            <td>&ndash;</td>
+            <td>&ndash;</td>
+          </tr>
           {chart.planets.map((p) => (
             <tr key={p.planet}>
               <td>{p.planet}</td>
@@ -47,6 +61,8 @@ export default function PlanetTable({ chart }) {
               <td>{p.house}</td>
               {hasDegrees && <td>{p.nakshatra}</td>}
               {hasDegrees && <td>{p.pada}</td>}
+              <td>{p.aspects ? p.aspects.join(', ') : '–'}</td>
+              <td>{p.vargottama ? 'Yes' : '–'}</td>
               <td>
                 {statusBadges(p).map((b, i) => (
                   <span key={b.label} className={b.className}>
