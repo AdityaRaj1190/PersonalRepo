@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import BirthChartForm from './components/BirthChartForm';
+import BirthSummary from './components/BirthSummary';
 import ChartDisplay from './components/ChartDisplay';
 import PlanetTable from './components/PlanetTable';
 import { computeBirthChart, computeDivisionalChart } from './lib/astro';
@@ -28,9 +29,9 @@ export default function App() {
     setError('');
     setIsSubmitting(true);
     try {
-      const { utcDate, timezone } = localToUtc(local, location.lat, location.lon);
+      const { utcDate, timezone, offsetMinutes } = localToUtc(local, location.lat, location.lon);
       const chart = computeBirthChart(utcDate, location.lat, location.lon);
-      setResult({ name, location, timezone, chart });
+      setResult({ name, location, local, timezone, offsetMinutes, chart });
       setVarga(1);
     } catch (err) {
       setError(err.message || 'Something went wrong while generating the chart.');
@@ -59,6 +60,14 @@ export default function App() {
             <p className="result-meta">
               {result.location.label} &middot; timezone {result.timezone}
             </p>
+
+            <BirthSummary
+              name={result.name}
+              local={result.local}
+              location={result.location}
+              offsetMinutes={result.offsetMinutes}
+              chart={result.chart}
+            />
 
             <div className="varga-toggle" role="group" aria-label="Divisional chart">
               {VARGAS.map((v) => (

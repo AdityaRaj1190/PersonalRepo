@@ -143,6 +143,28 @@ export function rashiOf(siderealLongitude) {
   return Math.floor(normalizeDegrees(siderealLongitude) / 30) % 12;
 }
 
+const TITHI_NAMES = [
+  'Pratipada', 'Dwitiya', 'Tritiya', 'Chaturthi', 'Panchami', 'Shashthi',
+  'Saptami', 'Ashtami', 'Navami', 'Dashami', 'Ekadashi', 'Dwadashi',
+  'Trayodashi', 'Chaturdashi',
+];
+
+/**
+ * Tithi (lunar day), from the Moon-Sun sidereal angular separation - each
+ * of the 30 tithis spans 12 degrees of that separation, split evenly across
+ * the waxing (Shukla) and waning (Krishna) paksha.
+ */
+export function tithiOf(moonSidereal, sunSidereal) {
+  const separation = normalizeDegrees(moonSidereal - sunSidereal);
+  const tithiNumber = Math.floor(separation / 12) + 1; // 1-30
+  const paksha = tithiNumber <= 15 ? 'Shukla' : 'Krishna';
+  const inPaksha = tithiNumber <= 15 ? tithiNumber : tithiNumber - 15;
+  let name;
+  if (inPaksha === 15) name = paksha === 'Shukla' ? 'Pournami' : 'Amavasya';
+  else name = TITHI_NAMES[inPaksha - 1];
+  return { index: tithiNumber, paksha, name };
+}
+
 export function nakshatraOf(siderealLongitude) {
   const span = 360 / 27;
   const lon = normalizeDegrees(siderealLongitude);
@@ -206,8 +228,12 @@ export function computeBirthChart(utcDate, latitude, longitude) {
     return { house: i + 1, rashi, rashiName: RASHIS[rashi] };
   });
 
+  const moonSidereal = planets.find((p) => p.planet === 'Moon').longitude;
+  const tithi = tithiOf(moonSidereal, sunSidereal);
+
   return {
     ayanamsa,
+    tithi,
     ascendant: {
       longitude: ascendantSidereal,
       degreeInRashi: ascendantSidereal % 30,

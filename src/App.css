@@ -326,6 +326,33 @@ button[type='submit']:disabled {
   overflow-x: auto;
 }
 
+.birth-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 16px 0 24px;
+  padding: 16px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.birth-summary-row {
+  display: grid;
+  grid-template-columns: 220px 12px 1fr;
+  gap: 4px;
+  color: var(--text-h);
+}
+
+.birth-summary-label {
+  color: var(--text);
+}
+
+.birth-summary-value {
+  font-weight: 600;
+}
+
 .ascendant-summary {
   text-align: center;
   margin-bottom: 16px;

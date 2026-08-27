@@ -48,7 +48,7 @@ export function timezoneForLocation(lat, lon) {
  * @param {{year:number, month:number, day:number, hour:number, minute:number}} local
  * @param {number} lat
  * @param {number} lon
- * @returns {{ utcDate: Date, timezone: string }}
+ * @returns {{ utcDate: Date, timezone: string, offsetMinutes: number }}
  */
 export function localToUtc(local, lat, lon) {
   const timezone = timezoneForLocation(lat, lon);
@@ -56,5 +56,5 @@ export function localToUtc(local, lat, lon) {
   if (!dt.isValid) {
     throw new Error(`Invalid date/time: ${dt.invalidReason} ${dt.invalidExplanation ?? ''}`);
   }
-  return { utcDate: dt.toUTC().toJSDate(), timezone };
+  return { utcDate: dt.toUTC().toJSDate(), timezone, offsetMinutes: dt.offset };
 }
