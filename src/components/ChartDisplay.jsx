@@ -3,7 +3,7 @@ import NorthIndianChart from './NorthIndianChart';
 import SouthIndianChart from './SouthIndianChart';
 
 export default function ChartDisplay({ chart }) {
-  const [style, setStyle] = useState('north');
+  const [style, setStyle] = useState('south');
 
   return (
     <div className="chart-display">
