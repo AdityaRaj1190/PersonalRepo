@@ -10,13 +10,20 @@ function statusBadges(p) {
 }
 
 export default function PlanetTable({ chart }) {
+  const hasDegrees = chart.ascendant.degreeInRashi !== undefined;
+
   return (
     <div className="planet-table-wrapper">
       <div className="ascendant-summary">
         <strong>Ascendant (Lagna):</strong>{' '}
-        {chart.ascendant.rashiName} {formatDegree(chart.ascendant.degreeInRashi)} &middot;{' '}
-        {chart.ascendant.nakshatra} pada {chart.ascendant.pada}
-        <span className="ayanamsa-note"> (Lahiri ayanamsa {formatDegree(chart.ayanamsa)})</span>
+        {chart.ascendant.rashiName}
+        {hasDegrees && <> {formatDegree(chart.ascendant.degreeInRashi)}</>}
+        {chart.ascendant.nakshatra && (
+          <> &middot; {chart.ascendant.nakshatra} pada {chart.ascendant.pada}</>
+        )}
+        {chart.ayanamsa !== undefined && (
+          <span className="ayanamsa-note"> (Lahiri ayanamsa {formatDegree(chart.ayanamsa)})</span>
+        )}
       </div>
 
       <table className="planet-table">
@@ -24,10 +31,10 @@ export default function PlanetTable({ chart }) {
           <tr>
             <th>Planet</th>
             <th>Rashi</th>
-            <th>Degree</th>
+            {hasDegrees && <th>Degree</th>}
             <th>House</th>
-            <th>Nakshatra</th>
-            <th>Pada</th>
+            {hasDegrees && <th>Nakshatra</th>}
+            {hasDegrees && <th>Pada</th>}
             <th>Status</th>
           </tr>
         </thead>
@@ -36,10 +43,10 @@ export default function PlanetTable({ chart }) {
             <tr key={p.planet}>
               <td>{p.planet}</td>
               <td>{p.rashiName}</td>
-              <td>{formatDegree(p.degreeInRashi)}</td>
+              {hasDegrees && <td>{formatDegree(p.degreeInRashi)}</td>}
               <td>{p.house}</td>
-              <td>{p.nakshatra}</td>
-              <td>{p.pada}</td>
+              {hasDegrees && <td>{p.nakshatra}</td>}
+              {hasDegrees && <td>{p.pada}</td>}
               <td>
                 {statusBadges(p).map((b, i) => (
                   <span key={b.label} className={b.className}>

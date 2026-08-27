@@ -1,15 +1,28 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import BirthChartForm from './components/BirthChartForm';
 import ChartDisplay from './components/ChartDisplay';
 import PlanetTable from './components/PlanetTable';
-import { computeBirthChart } from './lib/astro';
+import { computeBirthChart, computeDivisionalChart } from './lib/astro';
 import { localToUtc } from './lib/geocode';
 import './App.css';
+
+const VARGAS = [
+  { id: 1, label: 'D1 · Rashi' },
+  { id: 2, label: 'D2 · Hora' },
+  { id: 3, label: 'D3 · Drekkana' },
+  { id: 9, label: 'D9 · Navamsa' },
+];
 
 export default function App() {
   const [result, setResult] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [varga, setVarga] = useState(1);
+
+  const displayedChart = useMemo(() => {
+    if (!result) return null;
+    return varga === 1 ? result.chart : computeDivisionalChart(result.chart, varga);
+  }, [result, varga]);
 
   function handleSubmit({ name, location, local }) {
     setError('');
@@ -18,6 +31,7 @@ export default function App() {
       const { utcDate, timezone } = localToUtc(local, location.lat, location.lon);
       const chart = computeBirthChart(utcDate, location.lat, location.lon);
       setResult({ name, location, timezone, chart });
+      setVarga(1);
     } catch (err) {
       setError(err.message || 'Something went wrong while generating the chart.');
       setResult(null);
@@ -45,8 +59,22 @@ export default function App() {
             <p className="result-meta">
               {result.location.label} &middot; timezone {result.timezone}
             </p>
-            <ChartDisplay chart={result.chart} />
-            <PlanetTable chart={result.chart} />
+
+            <div className="varga-toggle" role="group" aria-label="Divisional chart">
+              {VARGAS.map((v) => (
+                <button
+                  key={v.id}
+                  type="button"
+                  className={varga === v.id ? 'active' : ''}
+                  onClick={() => setVarga(v.id)}
+                >
+                  {v.label}
+                </button>
+              ))}
+            </div>
+
+            <ChartDisplay chart={displayedChart} />
+            <PlanetTable chart={displayedChart} />
           </section>
         )}
       </main>

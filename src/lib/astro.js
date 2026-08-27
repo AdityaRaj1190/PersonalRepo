@@ -220,3 +220,66 @@ export function computeBirthChart(utcDate, latitude, longitude) {
     houses,
   };
 }
+
+/**
+ * Divisional (varga) rashi for a given D1 rashi + degree-in-rashi, per the
+ * classical Parashari division rules.
+ * - D2 (Hora): each sign's first/second half go to Cancer or Leo, which
+ *   half maps to which alternates between odd and even signs.
+ * - D3 (Drekkana): each 10° third of a sign maps to itself, +4 signs, or
+ *   +8 signs.
+ * - D9 (Navamsa): each sign's nine 3°20' parts map onto a run of 9 signs
+ *   starting at the sign itself (movable), its 9th (fixed), or its 5th
+ *   (dual) - equivalent to the closed-form (rashi*9 + part) % 12 used here.
+ */
+function vargaRashi(rashi, degreeInRashi, varga) {
+  if (varga === 2) {
+    const isOddSign = rashi % 2 === 0;
+    const firstHalf = degreeInRashi < 15;
+    if (isOddSign) return firstHalf ? 4 : 3; // Leo, Cancer
+    return firstHalf ? 3 : 4; // Cancer, Leo
+  }
+  if (varga === 3) {
+    const part = Math.floor(degreeInRashi / 10);
+    return (rashi + part * 4) % 12;
+  }
+  if (varga === 9) {
+    const part = Math.floor(degreeInRashi / (10 / 3));
+    return (rashi * 9 + part) % 12;
+  }
+  throw new Error(`Unsupported varga: D${varga}`);
+}
+
+/**
+ * Derive a divisional (varga) chart from an already-computed D1 chart.
+ * Divisional charts are sign-based (no independent degree/nakshatra of
+ * their own), so only rashi/house are meaningful; retrograde/combust state
+ * is carried over from D1 since those describe the planet's motion, not
+ * its sign placement.
+ * @param {ReturnType<typeof computeBirthChart>} chart - a D1 chart
+ * @param {2|3|9} varga - which divisional chart to derive
+ */
+export function computeDivisionalChart(chart, varga) {
+  const ascendantRashi = vargaRashi(chart.ascendant.rashi, chart.ascendant.degreeInRashi, varga);
+
+  const planets = chart.planets.map((p) => {
+    const rashi = vargaRashi(p.rashi, p.degreeInRashi, varga);
+    const house = ((rashi - ascendantRashi + 12) % 12) + 1;
+    return {
+      planet: p.planet,
+      rashi,
+      rashiName: RASHIS[rashi],
+      house,
+      retrograde: p.retrograde,
+      exalted: rashi === EXALTATION_RASHI[p.planet],
+      debilitated: rashi === DEBILITATION_RASHI[p.planet],
+      combust: p.combust,
+    };
+  });
+
+  return {
+    varga,
+    ascendant: { rashi: ascendantRashi, rashiName: RASHIS[ascendantRashi] },
+    planets,
+  };
+}

@@ -195,6 +195,32 @@ button[type='submit']:disabled {
   color: #fff;
 }
 
+.varga-toggle {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 4px;
+  margin: 12px 0;
+}
+
+.varga-toggle button {
+  font: inherit;
+  font-size: 13px;
+  padding: 6px 14px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.varga-toggle button.active {
+  background: var(--accent);
+  color: #fff;
+}
+
 .chart-wrapper {
   width: 100%;
   max-width: 420px;
