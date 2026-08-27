@@ -228,6 +228,35 @@ button[type='submit']:disabled {
   margin: 0 0 16px;
 }
 
+.show-d1-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-h);
+  margin: 0 0 16px;
+  cursor: pointer;
+}
+
+.chart-panels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+}
+
+.chart-panel {
+  flex: 1 1 300px;
+  max-width: 420px;
+}
+
+.chart-panel-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-h);
+  text-align: center;
+  margin: 0 0 6px;
+}
+
 .chart-wrapper {
   width: 100%;
   max-width: 420px;

@@ -35,11 +35,24 @@ export default function App() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [varga, setVarga] = useState(1);
+  const [showD1, setShowD1] = useState(false);
 
   const displayedChart = useMemo(() => {
     if (!result) return null;
     return varga === 1 ? result.chart : computeDivisionalChart(result.chart, varga);
   }, [result, varga]);
+
+  const chartPanels = useMemo(() => {
+    if (!result) return [];
+    const vargaLabel = VARGAS.find((v) => v.id === varga).label;
+    if (showD1 && varga !== 1) {
+      return [
+        { chart: result.chart, title: 'D1 · Rashi' },
+        { chart: displayedChart, title: vargaLabel },
+      ];
+    }
+    return [{ chart: displayedChart }];
+  }, [result, displayedChart, varga, showD1]);
 
   function handleSubmit({ name, location, local }) {
     setError('');
@@ -101,7 +114,18 @@ export default function App() {
               {VARGAS.find((v) => v.id === varga).description}
             </p>
 
-            <ChartDisplay chart={displayedChart} />
+            {varga !== 1 && (
+              <label className="show-d1-toggle">
+                <input
+                  type="checkbox"
+                  checked={showD1}
+                  onChange={(e) => setShowD1(e.target.checked)}
+                />
+                Show D1 alongside {VARGAS.find((v) => v.id === varga).label}
+              </label>
+            )}
+
+            <ChartDisplay panels={chartPanels} />
             <PlanetTable chart={displayedChart} />
           </section>
         )}
