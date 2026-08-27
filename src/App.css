@@ -199,10 +199,12 @@ button[type='submit']:disabled {
   display: inline-flex;
   flex-wrap: wrap;
   gap: 4px;
+  max-width: 100%;
   border: 1px solid var(--border);
-  border-radius: 999px;
+  border-radius: 14px;
   padding: 4px;
   margin: 12px 0;
+  box-sizing: border-box;
 }
 
 .varga-toggle button {
@@ -371,6 +373,24 @@ button[type='submit']:disabled {
 
 .planet-table-wrapper {
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 560px) {
+  .form-section,
+  .result-section {
+    padding: 16px;
+  }
+
+  .planet-table {
+    font-size: 12px;
+  }
+
+  .planet-table th,
+  .planet-table td {
+    padding: 6px 8px;
+    white-space: nowrap;
+  }
 }
 
 .birth-summary {
@@ -396,6 +416,29 @@ button[type='submit']:disabled {
   color: var(--text);
 }
 
+@media (max-width: 560px) {
+  .birth-summary-row {
+    grid-template-columns: 1fr;
+    gap: 2px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .birth-summary-row:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+
+  .birth-summary-colon {
+    display: none;
+  }
+
+  .birth-summary-label {
+    font-size: 12px;
+    font-weight: 600;
+  }
+}
+
 .birth-summary-value {
   font-weight: 600;
 }
@@ -414,13 +457,8 @@ button[type='submit']:disabled {
   margin: 0 0 16px;
 }
 
-.strongest-planet-note strong {
+.strongest-planet-value {
   color: var(--accent);
-}
-
-.strongest-planet-hint {
-  color: var(--text);
-  font-weight: 400;
 }
 
 .ascendant-row {

@@ -29,8 +29,8 @@ export default function PlanetTable({ chart }) {
       )}
       {chart.strongestPlanet && (
         <p className="strongest-planet-note">
-          Strongest planet: <strong>{chart.strongestPlanet}</strong>{' '}
-          <span className="strongest-planet-hint">(by vargottama, positional strength &amp; Dig Bala)</span>
+          <strong>Strongest planet:</strong>{' '}
+          <strong className="strongest-planet-value">{chart.strongestPlanet}</strong>
         </p>
       )}
 
