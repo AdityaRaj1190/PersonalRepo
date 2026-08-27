@@ -1,7 +1,8 @@
 import { formatDegree } from '../lib/format';
 
-function statusBadges(p) {
+function statusBadges(p, strongestPlanet) {
   const badges = [];
+  if (p.planet === strongestPlanet) badges.push({ label: 'Strongest', className: 'legend-strongest' });
   if (p.retrograde) badges.push({ label: 'Retrograde', className: 'legend-retrograde' });
   if (p.exalted) badges.push({ label: 'Exalted', className: 'legend-exalted' });
   if (p.debilitated) badges.push({ label: 'Debilitated', className: 'legend-debilitated' });
@@ -25,6 +26,12 @@ export default function PlanetTable({ chart }) {
     <div className="planet-table-wrapper">
       {chart.ayanamsa !== undefined && (
         <p className="ayanamsa-note">Lahiri ayanamsa {formatDegree(chart.ayanamsa)}</p>
+      )}
+      {chart.strongestPlanet && (
+        <p className="strongest-planet-note">
+          Strongest planet: <strong>{chart.strongestPlanet}</strong>{' '}
+          <span className="strongest-planet-hint">(by vargottama, positional strength &amp; Dig Bala)</span>
+        </p>
       )}
 
       <table className="planet-table">
@@ -54,7 +61,7 @@ export default function PlanetTable({ chart }) {
             <td>&ndash;</td>
           </tr>
           {chart.planets.map((p) => (
-            <tr key={p.planet}>
+            <tr key={p.planet} className={p.planet === chart.strongestPlanet ? 'strongest-row' : ''}>
               <td>{p.planet}</td>
               <td>{p.rashiName}</td>
               {hasDegrees && <td>{formatDegree(p.degreeInRashi)}</td>}
@@ -64,7 +71,7 @@ export default function PlanetTable({ chart }) {
               <td>{p.aspects ? p.aspects.join(', ') : '–'}</td>
               <td>{p.vargottama ? 'Yes' : '–'}</td>
               <td>
-                {statusBadges(p).map((b, i) => (
+                {statusBadges(p, chart.strongestPlanet).map((b, i) => (
                   <span key={b.label} className={b.className}>
                     {i > 0 && ', '}
                     {b.label}

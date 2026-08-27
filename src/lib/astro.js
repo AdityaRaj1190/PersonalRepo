@@ -177,6 +177,42 @@ function aspectedHouses(house, planet) {
   return [...offsets].map((offset) => ((house - 1 + offset) % 12) + 1).sort((a, b) => a - b);
 }
 
+/**
+ * Dig Bala (directional strength): each graha is strongest in one
+ * "home" house and weakest in the opposite one, tapering linearly
+ * between them. Rahu/Ketu classically have no Dig Bala.
+ */
+const DIG_BALA_HOUSE = { Jupiter: 1, Mercury: 1, Sun: 10, Mars: 10, Saturn: 7, Moon: 4, Venus: 4 };
+
+function digBalaScore(planet, house) {
+  const home = DIG_BALA_HOUSE[planet];
+  if (!home) return 0;
+  const diff = Math.abs(house - home);
+  const houseDistance = Math.min(diff, 12 - diff); // 0 (home) .. 6 (opposite)
+  return 2 * (1 - houseDistance / 6);
+}
+
+/**
+ * A simplified strength score for ranking the "strongest" planet in a
+ * chart, combining three classical factors: Vargottama (+2), positive
+ * Sthana Bala/positional strength - exalted (+3) or in its own sign
+ * (+2) - and Dig Bala (0-2, see above). This is a teaching-oriented
+ * approximation, not a full Shadbala calculation.
+ */
+function planetStrength(p) {
+  const positional = p.rashi === EXALTATION_RASHI[p.planet] ? 3 : RASHI_LORDS[p.rashi] === p.planet ? 2 : 0;
+  const digBala = digBalaScore(p.planet, p.house);
+  const vargottama = p.vargottama ? 2 : 0;
+  return { positional, digBala, vargottama, total: positional + digBala + vargottama };
+}
+
+/** Attach a `strength` breakdown to each planet and report the strongest. */
+function withStrength(planets) {
+  const scored = planets.map((p) => ({ ...p, strength: planetStrength(p) }));
+  const strongestPlanet = scored.reduce((best, p) => (p.strength.total > best.strength.total ? p : best)).planet;
+  return { planets: scored, strongestPlanet };
+}
+
 export function nakshatraOf(siderealLongitude) {
   const span = 360 / 27;
   const lon = normalizeDegrees(siderealLongitude);
@@ -247,10 +283,12 @@ export function computeBirthChart(utcDate, latitude, longitude) {
 
   const moonSidereal = planets.find((p) => p.planet === 'Moon').longitude;
   const tithi = tithiOf(moonSidereal, sunSidereal);
+  const { planets: planetsWithStrength, strongestPlanet } = withStrength(planets);
 
   return {
     ayanamsa,
     tithi,
+    strongestPlanet,
     ascendant: {
       longitude: ascendantSidereal,
       degreeInRashi: ascendantSidereal % 30,
@@ -259,7 +297,7 @@ export function computeBirthChart(utcDate, latitude, longitude) {
       nakshatra: NAKSHATRAS[nakshatraOf(ascendantSidereal).index],
       pada: nakshatraOf(ascendantSidereal).pada,
     },
-    planets,
+    planets: planetsWithStrength,
     houses,
   };
 }
@@ -328,9 +366,12 @@ export function computeDivisionalChart(chart, varga) {
     };
   });
 
+  const { planets: planetsWithStrength, strongestPlanet } = withStrength(planets);
+
   return {
     varga,
+    strongestPlanet,
     ascendant: { rashi: ascendantRashi, rashiName: RASHIS[ascendantRashi] },
-    planets,
+    planets: planetsWithStrength,
   };
 }
