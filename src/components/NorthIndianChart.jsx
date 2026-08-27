@@ -26,6 +26,7 @@ export default function NorthIndianChart({ chart }) {
         const rashiNumber = ((chart.ascendant.rashi + house - 1) % 12) + 1;
         const [lx, ly] = shape.labelAt;
         const planets = planetsByHouse[house] ?? [];
+        const isDiamond = shape.points.length === 4;
 
         return (
           <g key={house} className="chart-house">
@@ -38,12 +39,12 @@ export default function NorthIndianChart({ chart }) {
               </text>
             )}
             {(() => {
-              const grid = layoutPlanetGrid(planets.length);
+              const grid = layoutPlanetGrid(planets.length, isDiamond ? 4 : 3);
               const startY = ly + (house === 1 ? 26 : 13);
               return planets.map((p, i) => {
                 const { col, row, compact } = grid[i];
-                const colOffset = compact ? (col === 0 ? -11 : 11) : 0;
-                const rowSpacing = compact ? 10 : 12;
+                const colOffset = compact ? (col === 0 ? (isDiamond ? -11 : -8) : (isDiamond ? 11 : 8)) : 0;
+                const rowSpacing = compact ? 10 : isDiamond ? 12 : 11;
                 return (
                   <text
                     key={p.planet}

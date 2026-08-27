@@ -1,11 +1,15 @@
 /**
  * Position a house/rashi cell's planet list so it doesn't overflow into
- * neighboring cells: up to 4 planets stack in a single column, beyond that
- * they wrap into two columns (compact, smaller font).
+ * neighboring cells: up to `maxSingleColumn` planets stack in a single
+ * column, beyond that they wrap into two columns (compact, smaller font).
+ * @param {number} count
+ * @param {number} [maxSingleColumn] - lower for cramped cells (e.g. the
+ *   North Indian chart's triangular houses have far less room than its
+ *   diamond ones)
  * @returns {Array<{col: number, row: number, compact: boolean}>}
  */
-export function layoutPlanetGrid(count) {
-  const cols = count > 4 ? 2 : 1;
+export function layoutPlanetGrid(count, maxSingleColumn = 4) {
+  const cols = count > maxSingleColumn ? 2 : 1;
   return Array.from({ length: count }, (_, i) => ({
     col: i % cols,
     row: Math.floor(i / cols),
