@@ -15,7 +15,7 @@ export default function NorthIndianChart({ chart }) {
   }
 
   return (
-    <svg viewBox="0 0 300 300" className="chart-svg" role="img" aria-label="North Indian birth chart">
+    <svg viewBox="0 0 300 300" className="chart-svg" role="img" aria-label="Diamond shaped birth chart">
       <polygon points={toPointsAttr(OUTER)} className="chart-outline" />
       <polygon points={toPointsAttr(DIAMOND)} className="chart-outline" />
       <line x1={0} y1={0} x2={300} y2={300} className="chart-outline" />

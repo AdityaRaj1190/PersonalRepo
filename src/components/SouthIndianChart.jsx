@@ -19,7 +19,7 @@ export default function SouthIndianChart({ chart }) {
   const vargaName = VARGA_NAMES[chart.varga];
 
   return (
-    <svg viewBox="0 0 300 300" className="chart-svg" role="img" aria-label="South Indian birth chart">
+    <svg viewBox="0 0 300 300" className="chart-svg" role="img" aria-label="Square shaped birth chart">
       {gridLines}
       {vargaName && (
         <text x={150} y={138} textAnchor="middle" className="chart-center-varga-label">

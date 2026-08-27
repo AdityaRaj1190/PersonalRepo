@@ -13,14 +13,14 @@ export default function ChartDisplay({ chart }) {
           className={style === 'north' ? 'active' : ''}
           onClick={() => setStyle('north')}
         >
-          North Indian
+          Diamond shaped chart
         </button>
         <button
           type="button"
           className={style === 'south' ? 'active' : ''}
           onClick={() => setStyle('south')}
         >
-          South Indian
+          Square shaped chart
         </button>
       </div>
 
