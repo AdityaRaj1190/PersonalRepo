@@ -313,6 +313,15 @@ button[type='submit']:disabled {
   opacity: 0.7;
 }
 
+.chart-center-varga-label {
+  font-size: 13px;
+  font-weight: 700;
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 0.6;
+  letter-spacing: 0.5px;
+}
+
 .planet-table-wrapper {
   overflow-x: auto;
 }

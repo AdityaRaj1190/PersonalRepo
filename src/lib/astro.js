@@ -273,7 +273,11 @@ export function computeDivisionalChart(chart, varga) {
       retrograde: p.retrograde,
       exalted: rashi === EXALTATION_RASHI[p.planet],
       debilitated: rashi === DEBILITATION_RASHI[p.planet],
-      combust: p.combust,
+      // Combustion is a D1-only concept (angular closeness to the Sun's own
+      // D1 position); a planet's varga placement is isolated from that, so
+      // carrying the D1 combust flag into a divisional chart would be
+      // showing a relationship the varga sign doesn't actually reflect.
+      combust: false,
     };
   });
 

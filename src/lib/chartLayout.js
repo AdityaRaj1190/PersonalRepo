@@ -1,3 +1,9 @@
+export const VARGA_NAMES = {
+  2: 'Hora',
+  3: 'Drekkana',
+  9: 'Navamsa',
+};
+
 export const PLANET_ABBR = {
   Sun: 'Su',
   Moon: 'Mo',
