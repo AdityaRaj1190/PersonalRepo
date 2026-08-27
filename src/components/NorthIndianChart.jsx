@@ -1,4 +1,4 @@
-import { NORTH_INDIAN_HOUSE_SHAPES } from '../lib/chartLayout';
+import { layoutPlanetGrid, NORTH_INDIAN_HOUSE_SHAPES } from '../lib/chartLayout';
 import PlanetGlyphs from './PlanetGlyphs';
 
 const OUTER = [[0, 0], [300, 0], [300, 300], [0, 300]];
@@ -37,17 +37,26 @@ export default function NorthIndianChart({ chart }) {
                 Asc
               </text>
             )}
-            {planets.map((p, i) => (
-              <text
-                key={p.planet}
-                x={lx}
-                y={ly + (house === 1 ? 26 : 13) + i * 12}
-                className="chart-planet"
-                textAnchor="middle"
-              >
-                <PlanetGlyphs planet={p} />
-              </text>
-            ))}
+            {(() => {
+              const grid = layoutPlanetGrid(planets.length);
+              const startY = ly + (house === 1 ? 26 : 13);
+              return planets.map((p, i) => {
+                const { col, row, compact } = grid[i];
+                const colOffset = compact ? (col === 0 ? -11 : 11) : 0;
+                const rowSpacing = compact ? 10 : 12;
+                return (
+                  <text
+                    key={p.planet}
+                    x={lx + colOffset}
+                    y={startY + row * rowSpacing}
+                    className={compact ? 'chart-planet chart-planet-compact' : 'chart-planet'}
+                    textAnchor="middle"
+                  >
+                    <PlanetGlyphs planet={p} />
+                  </text>
+                );
+              });
+            })()}
           </g>
         );
       })}

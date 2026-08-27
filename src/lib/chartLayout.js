@@ -1,3 +1,18 @@
+/**
+ * Position a house/rashi cell's planet list so it doesn't overflow into
+ * neighboring cells: up to 4 planets stack in a single column, beyond that
+ * they wrap into two columns (compact, smaller font).
+ * @returns {Array<{col: number, row: number, compact: boolean}>}
+ */
+export function layoutPlanetGrid(count) {
+  const cols = count > 4 ? 2 : 1;
+  return Array.from({ length: count }, (_, i) => ({
+    col: i % cols,
+    row: Math.floor(i / cols),
+    compact: cols > 1,
+  }));
+}
+
 export const VARGA_NAMES = {
   2: 'Hora',
   3: 'Drekkana',

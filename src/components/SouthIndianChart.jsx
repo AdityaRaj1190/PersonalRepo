@@ -1,5 +1,5 @@
 import { RASHIS } from '../lib/astro';
-import { SOUTH_INDIAN_RASHI_CELLS, VARGA_NAMES } from '../lib/chartLayout';
+import { layoutPlanetGrid, SOUTH_INDIAN_RASHI_CELLS, VARGA_NAMES } from '../lib/chartLayout';
 import PlanetGlyphs from './PlanetGlyphs';
 
 const CELL = 75; // 300 / 4
@@ -49,17 +49,25 @@ export default function SouthIndianChart({ chart }) {
                 className="chart-asc-marker"
               />
             )}
-            {planets.map((p, i) => (
-              <text
-                key={p.planet}
-                x={x + CELL / 2}
-                y={y + 32 + i * 14}
-                textAnchor="middle"
-                className="chart-planet"
-              >
-                <PlanetGlyphs planet={p} />
-              </text>
-            ))}
+            {(() => {
+              const grid = layoutPlanetGrid(planets.length);
+              return planets.map((p, i) => {
+                const { col, row, compact } = grid[i];
+                const colOffset = compact ? (col === 0 ? -15 : 15) : 0;
+                const rowSpacing = compact ? 11 : 14;
+                return (
+                  <text
+                    key={p.planet}
+                    x={x + CELL / 2 + colOffset}
+                    y={y + 30 + row * rowSpacing}
+                    textAnchor="middle"
+                    className={compact ? 'chart-planet chart-planet-compact' : 'chart-planet'}
+                  >
+                    <PlanetGlyphs planet={p} />
+                  </text>
+                );
+              });
+            })()}
           </g>
         );
       })}
