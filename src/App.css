@@ -461,11 +461,6 @@ button[type='submit']:disabled {
   color: var(--accent);
 }
 
-.strongest-planet-hint {
-  color: var(--text);
-  font-weight: 400;
-}
-
 .ascendant-row {
   font-weight: 700;
 }
