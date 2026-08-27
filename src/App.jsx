@@ -8,10 +8,26 @@ import { localToUtc } from './lib/geocode';
 import './App.css';
 
 const VARGAS = [
-  { id: 1, label: 'D1 · Rashi' },
-  { id: 2, label: 'D2 · Hora' },
-  { id: 3, label: 'D3 · Drekkana' },
-  { id: 9, label: 'D9 · Navamsa' },
+  {
+    id: 1,
+    label: 'D1 · Rashi',
+    description: 'The main birth chart - planet positions and houses exactly as they were at birth.',
+  },
+  {
+    id: 2,
+    label: 'D2 · Hora',
+    description: 'Wealth and prosperity - splits each sign into two halves ruled by the Sun and Moon.',
+  },
+  {
+    id: 3,
+    label: 'D3 · Drekkana',
+    description: 'Siblings and courage - splits each sign into three 10-degree segments.',
+  },
+  {
+    id: 9,
+    label: 'D9 · Navamsa',
+    description: "Marriage and one's inner dharma - splits each sign into nine parts; traditionally read alongside D1 to confirm a planet's true strength.",
+  },
 ];
 
 export default function App() {
@@ -81,6 +97,9 @@ export default function App() {
                 </button>
               ))}
             </div>
+            <p className="varga-description">
+              {VARGAS.find((v) => v.id === varga).description}
+            </p>
 
             <ChartDisplay chart={displayedChart} />
             <PlanetTable chart={displayedChart} />

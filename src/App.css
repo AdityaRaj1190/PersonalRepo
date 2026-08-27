@@ -221,6 +221,13 @@ button[type='submit']:disabled {
   color: #fff;
 }
 
+.varga-description {
+  font-size: 13px;
+  color: var(--text);
+  max-width: 480px;
+  margin: 0 0 16px;
+}
+
 .chart-wrapper {
   width: 100%;
   max-width: 420px;
