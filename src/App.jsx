@@ -115,14 +115,15 @@ export default function App() {
             </p>
 
             {varga !== 1 && (
-              <label className="show-d1-toggle">
+              <div className="show-d1-toggle">
                 <input
+                  id="show-d1"
                   type="checkbox"
                   checked={showD1}
                   onChange={(e) => setShowD1(e.target.checked)}
                 />
-                Show D1 alongside {VARGAS.find((v) => v.id === varga).label}
-              </label>
+                <span>Compare with D1</span>
+              </div>
             )}
 
             <ChartDisplay panels={chartPanels} />

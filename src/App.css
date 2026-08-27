@@ -235,6 +235,9 @@ button[type='submit']:disabled {
   font-size: 13px;
   color: var(--text-h);
   margin: 0 0 16px;
+}
+
+.show-d1-toggle input {
   cursor: pointer;
 }
 
