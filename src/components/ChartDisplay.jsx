@@ -2,8 +2,13 @@ import { useState } from 'react';
 import NorthIndianChart from './NorthIndianChart';
 import SouthIndianChart from './SouthIndianChart';
 
-export default function ChartDisplay({ chart }) {
-  const [style, setStyle] = useState('north');
+/**
+ * @param {Array<{chart: object, title?: string}>} panels - one or more
+ *   charts to render side by side, sharing the same North/South Indian
+ *   style toggle (e.g. D1 shown next to the currently selected varga).
+ */
+export default function ChartDisplay({ panels }) {
+  const [style, setStyle] = useState('south');
 
   return (
     <div className="chart-display">
@@ -24,8 +29,15 @@ export default function ChartDisplay({ chart }) {
         </button>
       </div>
 
-      <div className="chart-wrapper">
-        {style === 'north' ? <NorthIndianChart chart={chart} /> : <SouthIndianChart chart={chart} />}
+      <div className="chart-panels">
+        {panels.map(({ chart, title }, i) => (
+          <div className="chart-panel" key={title ?? i}>
+            {title && <p className="chart-panel-title">{title}</p>}
+            <div className="chart-wrapper">
+              {style === 'north' ? <NorthIndianChart chart={chart} /> : <SouthIndianChart chart={chart} />}
+            </div>
+          </div>
+        ))}
       </div>
 
       <div className="chart-legend">

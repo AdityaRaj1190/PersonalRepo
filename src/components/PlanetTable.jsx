@@ -1,7 +1,8 @@
 import { formatDegree } from '../lib/format';
 
-function statusBadges(p) {
+function statusBadges(p, strongestPlanet) {
   const badges = [];
+  if (p.planet === strongestPlanet) badges.push({ label: 'Strongest', className: 'legend-strongest' });
   if (p.retrograde) badges.push({ label: 'Retrograde', className: 'legend-retrograde' });
   if (p.exalted) badges.push({ label: 'Exalted', className: 'legend-exalted' });
   if (p.debilitated) badges.push({ label: 'Debilitated', className: 'legend-debilitated' });
@@ -10,38 +11,67 @@ function statusBadges(p) {
 }
 
 export default function PlanetTable({ chart }) {
+  const hasDegrees = chart.ascendant.degreeInRashi !== undefined;
+
+  const ascendantRow = {
+    planet: 'Ascendant',
+    rashiName: chart.ascendant.rashiName,
+    degreeInRashi: chart.ascendant.degreeInRashi,
+    house: 1,
+    nakshatra: chart.ascendant.nakshatra,
+    pada: chart.ascendant.pada,
+  };
+
   return (
     <div className="planet-table-wrapper">
-      <div className="ascendant-summary">
-        <strong>Ascendant (Lagna):</strong>{' '}
-        {chart.ascendant.rashiName} {formatDegree(chart.ascendant.degreeInRashi)} &middot;{' '}
-        {chart.ascendant.nakshatra} pada {chart.ascendant.pada}
-        <span className="ayanamsa-note"> (Lahiri ayanamsa {formatDegree(chart.ayanamsa)})</span>
-      </div>
+      {chart.ayanamsa !== undefined && (
+        <p className="ayanamsa-note">Lahiri ayanamsa {formatDegree(chart.ayanamsa)}</p>
+      )}
+      {chart.strongestPlanet && (
+        <p className="strongest-planet-note">
+          Strongest planet: <strong>{chart.strongestPlanet}</strong>{' '}
+          <span className="strongest-planet-hint">(by vargottama, positional strength &amp; Dig Bala)</span>
+        </p>
+      )}
 
       <table className="planet-table">
         <thead>
           <tr>
             <th>Planet</th>
             <th>Rashi</th>
-            <th>Degree</th>
+            {hasDegrees && <th>Degree</th>}
             <th>House</th>
-            <th>Nakshatra</th>
-            <th>Pada</th>
+            {hasDegrees && <th>Nakshatra</th>}
+            {hasDegrees && <th>Pada</th>}
+            <th>Aspects</th>
+            <th>Vargottama</th>
             <th>Status</th>
           </tr>
         </thead>
         <tbody>
+          <tr className="ascendant-row">
+            <td>{ascendantRow.planet}</td>
+            <td>{ascendantRow.rashiName}</td>
+            {hasDegrees && <td>{formatDegree(ascendantRow.degreeInRashi)}</td>}
+            <td>{ascendantRow.house}</td>
+            {hasDegrees && <td>{ascendantRow.nakshatra}</td>}
+            {hasDegrees && <td>{ascendantRow.pada}</td>}
+            <td>&ndash;</td>
+            <td>&ndash;</td>
+            <td>&ndash;</td>
+          </tr>
           {chart.planets.map((p) => (
-            <tr key={p.planet}>
+            <tr key={p.planet} className={p.planet === chart.strongestPlanet ? 'strongest-row' : ''}>
               <td>{p.planet}</td>
               <td>{p.rashiName}</td>
-              <td>{formatDegree(p.degreeInRashi)}</td>
+              {hasDegrees && <td>{formatDegree(p.degreeInRashi)}</td>}
               <td>{p.house}</td>
-              <td>{p.nakshatra}</td>
-              <td>{p.pada}</td>
+              {hasDegrees && <td>{p.nakshatra}</td>}
+              {hasDegrees && <td>{p.pada}</td>}
+              <td>{p.aspects ? p.aspects.join(', ') : '–'}</td>
+              <td>{p.vargottama ? 'Yes' : '–'}</td>
               <td>
-                {statusBadges(p).map((b, i) => (
+                {statusBadges(p, chart.strongestPlanet).map((b, i) => (
                   <span key={b.label} className={b.className}>
                     {i > 0 && ', '}
                     {b.label}

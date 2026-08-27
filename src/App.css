@@ -195,6 +195,71 @@ button[type='submit']:disabled {
   color: #fff;
 }
 
+.varga-toggle {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 4px;
+  margin: 12px 0;
+}
+
+.varga-toggle button {
+  font: inherit;
+  font-size: 13px;
+  padding: 6px 14px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.varga-toggle button.active {
+  background: var(--accent);
+  color: #fff;
+}
+
+.varga-description {
+  font-size: 13px;
+  color: var(--text);
+  max-width: 480px;
+  margin: 0 0 16px;
+}
+
+.show-d1-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-h);
+  margin: 0 0 16px;
+}
+
+.show-d1-toggle input {
+  cursor: pointer;
+}
+
+.chart-panels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+}
+
+.chart-panel {
+  flex: 1 1 300px;
+  max-width: 420px;
+}
+
+.chart-panel-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-h);
+  text-align: center;
+  margin: 0 0 6px;
+}
+
 .chart-wrapper {
   width: 100%;
   max-width: 420px;
@@ -235,9 +300,13 @@ button[type='submit']:disabled {
   fill: var(--text-h);
 }
 
+.chart-planet-compact {
+  font-size: 7.5px;
+}
+
 .glyph-retrograde {
   fill: var(--danger);
-  font-size: 8px;
+  font-size: 0.8em;
 }
 
 .glyph-exalted {
@@ -281,26 +350,89 @@ button[type='submit']:disabled {
   color: var(--combust);
 }
 
+.legend-strongest {
+  color: var(--accent);
+}
+
 .chart-center-label {
   font-size: 10px;
   fill: var(--text);
   opacity: 0.7;
 }
 
+.chart-center-varga-label {
+  font-size: 13px;
+  font-weight: 700;
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 0.6;
+  letter-spacing: 0.5px;
+}
+
 .planet-table-wrapper {
   overflow-x: auto;
 }
 
-.ascendant-summary {
-  text-align: center;
-  margin-bottom: 16px;
-  font-size: 15px;
+.birth-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 16px 0 24px;
+  padding: 16px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.birth-summary-row {
+  display: grid;
+  grid-template-columns: 220px 12px 1fr;
+  gap: 4px;
   color: var(--text-h);
 }
 
+.birth-summary-label {
+  color: var(--text);
+}
+
+.birth-summary-value {
+  font-weight: 600;
+}
+
 .ayanamsa-note {
+  text-align: center;
   color: var(--text);
   font-size: 13px;
+  margin: 0 0 8px;
+}
+
+.strongest-planet-note {
+  text-align: center;
+  color: var(--text-h);
+  font-size: 13px;
+  margin: 0 0 16px;
+}
+
+.strongest-planet-note strong {
+  color: var(--accent);
+}
+
+.strongest-planet-hint {
+  color: var(--text);
+  font-weight: 400;
+}
+
+.ascendant-row {
+  font-weight: 700;
+}
+
+.ascendant-row td {
+  border-bottom: 2px solid var(--border);
+}
+
+.strongest-row {
+  background: var(--accent-bg);
 }
 
 .planet-table {

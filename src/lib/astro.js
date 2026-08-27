@@ -143,6 +143,76 @@ export function rashiOf(siderealLongitude) {
   return Math.floor(normalizeDegrees(siderealLongitude) / 30) % 12;
 }
 
+const TITHI_NAMES = [
+  'Pratipada', 'Dwitiya', 'Tritiya', 'Chaturthi', 'Panchami', 'Shashthi',
+  'Saptami', 'Ashtami', 'Navami', 'Dashami', 'Ekadashi', 'Dwadashi',
+  'Trayodashi', 'Chaturdashi',
+];
+
+/**
+ * Tithi (lunar day), from the Moon-Sun sidereal angular separation - each
+ * of the 30 tithis spans 12 degrees of that separation, split evenly across
+ * the waxing (Shukla) and waning (Krishna) paksha.
+ */
+export function tithiOf(moonSidereal, sunSidereal) {
+  const separation = normalizeDegrees(moonSidereal - sunSidereal);
+  const tithiNumber = Math.floor(separation / 12) + 1; // 1-30
+  const paksha = tithiNumber <= 15 ? 'Shukla' : 'Krishna';
+  const inPaksha = tithiNumber <= 15 ? tithiNumber : tithiNumber - 15;
+  let name;
+  if (inPaksha === 15) name = paksha === 'Shukla' ? 'Pournami' : 'Amavasya';
+  else name = TITHI_NAMES[inPaksha - 1];
+  return { index: tithiNumber, paksha, name };
+}
+
+/**
+ * Parashari graha drishti (aspect): every planet fully aspects the house
+ * 7 signs from its own; Mars, Jupiter and Saturn additionally cast special
+ * aspects (Mars: 4th/8th, Jupiter: 5th/9th, Saturn: 3rd/10th from itself).
+ */
+const SPECIAL_ASPECT_OFFSETS = { Mars: [3, 7], Jupiter: [4, 8], Saturn: [2, 9] };
+
+function aspectedHouses(house, planet) {
+  const offsets = new Set([6, ...(SPECIAL_ASPECT_OFFSETS[planet] ?? [])]);
+  return [...offsets].map((offset) => ((house - 1 + offset) % 12) + 1).sort((a, b) => a - b);
+}
+
+/**
+ * Dig Bala (directional strength): each graha is strongest in one
+ * "home" house and weakest in the opposite one, tapering linearly
+ * between them. Rahu/Ketu classically have no Dig Bala.
+ */
+const DIG_BALA_HOUSE = { Jupiter: 1, Mercury: 1, Sun: 10, Mars: 10, Saturn: 7, Moon: 4, Venus: 4 };
+
+function digBalaScore(planet, house) {
+  const home = DIG_BALA_HOUSE[planet];
+  if (!home) return 0;
+  const diff = Math.abs(house - home);
+  const houseDistance = Math.min(diff, 12 - diff); // 0 (home) .. 6 (opposite)
+  return 2 * (1 - houseDistance / 6);
+}
+
+/**
+ * A simplified strength score for ranking the "strongest" planet in a
+ * chart, combining three classical factors: Vargottama (+2), positive
+ * Sthana Bala/positional strength - exalted (+3) or in its own sign
+ * (+2) - and Dig Bala (0-2, see above). This is a teaching-oriented
+ * approximation, not a full Shadbala calculation.
+ */
+function planetStrength(p) {
+  const positional = p.rashi === EXALTATION_RASHI[p.planet] ? 3 : RASHI_LORDS[p.rashi] === p.planet ? 2 : 0;
+  const digBala = digBalaScore(p.planet, p.house);
+  const vargottama = p.vargottama ? 2 : 0;
+  return { positional, digBala, vargottama, total: positional + digBala + vargottama };
+}
+
+/** Attach a `strength` breakdown to each planet and report the strongest. */
+function withStrength(planets) {
+  const scored = planets.map((p) => ({ ...p, strength: planetStrength(p) }));
+  const strongestPlanet = scored.reduce((best, p) => (p.strength.total > best.strength.total ? p : best)).planet;
+  return { planets: scored, strongestPlanet };
+}
+
 export function nakshatraOf(siderealLongitude) {
   const span = 360 / 27;
   const lon = normalizeDegrees(siderealLongitude);
@@ -178,6 +248,7 @@ export function computeBirthChart(utcDate, latitude, longitude) {
     }
     const sidereal = normalizeDegrees(tropical - ayanamsa);
     const rashi = rashiOf(sidereal);
+    const degreeInRashi = sidereal % 30;
     const house = ((rashi - ascendantRashi + 12) % 12) + 1;
     const { index: nakshatraIndex, pada } = nakshatraOf(sidereal);
     // Rahu/Ketu are conventionally always retrograde in Vedic astrology, so
@@ -188,7 +259,7 @@ export function computeBirthChart(utcDate, latitude, longitude) {
     return {
       planet,
       longitude: sidereal,
-      degreeInRashi: sidereal % 30,
+      degreeInRashi,
       rashi,
       rashiName: RASHIS[rashi],
       house,
@@ -198,6 +269,10 @@ export function computeBirthChart(utcDate, latitude, longitude) {
       exalted: rashi === EXALTATION_RASHI[planet],
       debilitated: rashi === DEBILITATION_RASHI[planet],
       combust: planet === 'Sun' ? false : isCombust(planet, sidereal, sunSidereal, retrograde),
+      // Vargottama: the planet occupies the same rashi in D1 and D9, a
+      // classical marker of strengthened placement.
+      vargottama: rashi === vargaRashi(rashi, degreeInRashi, 9),
+      aspects: aspectedHouses(house, planet),
     };
   });
 
@@ -206,8 +281,14 @@ export function computeBirthChart(utcDate, latitude, longitude) {
     return { house: i + 1, rashi, rashiName: RASHIS[rashi] };
   });
 
+  const moonSidereal = planets.find((p) => p.planet === 'Moon').longitude;
+  const tithi = tithiOf(moonSidereal, sunSidereal);
+  const { planets: planetsWithStrength, strongestPlanet } = withStrength(planets);
+
   return {
     ayanamsa,
+    tithi,
+    strongestPlanet,
     ascendant: {
       longitude: ascendantSidereal,
       degreeInRashi: ascendantSidereal % 30,
@@ -216,7 +297,81 @@ export function computeBirthChart(utcDate, latitude, longitude) {
       nakshatra: NAKSHATRAS[nakshatraOf(ascendantSidereal).index],
       pada: nakshatraOf(ascendantSidereal).pada,
     },
-    planets,
+    planets: planetsWithStrength,
     houses,
+  };
+}
+
+/**
+ * Divisional (varga) rashi for a given D1 rashi + degree-in-rashi, per the
+ * classical Parashari division rules.
+ * - D2 (Hora): each sign's first/second half go to Cancer or Leo, which
+ *   half maps to which alternates between odd and even signs.
+ * - D3 (Drekkana): each 10° third of a sign maps to itself, +4 signs, or
+ *   +8 signs.
+ * - D9 (Navamsa): each sign's nine 3°20' parts map onto a run of 9 signs
+ *   starting at the sign itself (movable), its 9th (fixed), or its 5th
+ *   (dual) - equivalent to the closed-form (rashi*9 + part) % 12 used here.
+ */
+function vargaRashi(rashi, degreeInRashi, varga) {
+  if (varga === 2) {
+    const isOddSign = rashi % 2 === 0;
+    const firstHalf = degreeInRashi < 15;
+    if (isOddSign) return firstHalf ? 4 : 3; // Leo, Cancer
+    return firstHalf ? 3 : 4; // Cancer, Leo
+  }
+  if (varga === 3) {
+    const part = Math.floor(degreeInRashi / 10);
+    return (rashi + part * 4) % 12;
+  }
+  if (varga === 9) {
+    const part = Math.floor(degreeInRashi / (10 / 3));
+    return (rashi * 9 + part) % 12;
+  }
+  throw new Error(`Unsupported varga: D${varga}`);
+}
+
+/**
+ * Derive a divisional (varga) chart from an already-computed D1 chart.
+ * Divisional charts are sign-based (no independent degree/nakshatra of
+ * their own), so only rashi/house are meaningful; retrograde/combust state
+ * is carried over from D1 since those describe the planet's motion, not
+ * its sign placement.
+ * @param {ReturnType<typeof computeBirthChart>} chart - a D1 chart
+ * @param {2|3|9} varga - which divisional chart to derive
+ */
+export function computeDivisionalChart(chart, varga) {
+  const ascendantRashi = vargaRashi(chart.ascendant.rashi, chart.ascendant.degreeInRashi, varga);
+
+  const planets = chart.planets.map((p) => {
+    const rashi = vargaRashi(p.rashi, p.degreeInRashi, varga);
+    const house = ((rashi - ascendantRashi + 12) % 12) + 1;
+    return {
+      planet: p.planet,
+      rashi,
+      rashiName: RASHIS[rashi],
+      house,
+      retrograde: p.retrograde,
+      exalted: rashi === EXALTATION_RASHI[p.planet],
+      debilitated: rashi === DEBILITATION_RASHI[p.planet],
+      // Combustion is a D1-only concept (angular closeness to the Sun's own
+      // D1 position); a planet's varga placement is isolated from that, so
+      // carrying the D1 combust flag into a divisional chart would be
+      // showing a relationship the varga sign doesn't actually reflect.
+      combust: false,
+      // Vargottama is a fixed D1-vs-D9 fact about the birth, not something
+      // that varies per varga, so it's carried over as-is.
+      vargottama: p.vargottama,
+      aspects: aspectedHouses(house, p.planet),
+    };
+  });
+
+  const { planets: planetsWithStrength, strongestPlanet } = withStrength(planets);
+
+  return {
+    varga,
+    strongestPlanet,
+    ascendant: { rashi: ascendantRashi, rashiName: RASHIS[ascendantRashi] },
+    planets: planetsWithStrength,
   };
 }
