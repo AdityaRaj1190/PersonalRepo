@@ -373,6 +373,22 @@ function taraBala(birthNakshatraIndex, currentNakshatraIndex) {
 }
 
 /**
+ * Gochara Effect (house-from-Moon) and Tara Bala (nakshatra-cycle) are two
+ * independent classical readings of the same transit, and can disagree -
+ * e.g. a planet can sit in a "favorable" house while its nakshatra falls
+ * in a "bad" Tara. Rather than let a reader wonder why the two columns
+ * contradict each other, this collapses them into one plain verdict:
+ * they only read as clearly favorable/unfavorable when both systems
+ * agree, otherwise it's called out as mixed.
+ */
+function overallReading(effect, taraNature) {
+  const taraGood = taraNature === 'good' || taraNature === 'neutral';
+  if (effect === 'favorable' && taraGood) return 'favorable';
+  if (effect === 'challenging' && !taraGood) return 'use caution';
+  return 'mixed signals';
+}
+
+/**
  * Latta ("kick") dosha: a commonly-taught rule (Tamil/Kannada panchangam
  * tradition) marking specific nakshatra distances - counted 1-27 from the
  * natal Moon's (Janma) nakshatra - at which the three "cruel" grahas are
@@ -486,6 +502,8 @@ export function computeTransitChart(natalChart, transitUtcDate) {
     const { index: nakshatraIndex, pada } = nakshatraOf(sidereal);
     const retrograde = planet === 'Rahu' || planet === 'Ketu' ? false : isRetrograde(planet, transitUtcDate);
     const nakshatraFromMoon = ((nakshatraIndex - natalMoonNakshatraIndex + 27) % 27) + 1;
+    const effect = gocharaEffect(planet, houseFromMoon);
+    const tara = taraBala(natalMoonNakshatraIndex, nakshatraIndex);
 
     return {
       planet,
@@ -499,8 +517,9 @@ export function computeTransitChart(natalChart, transitUtcDate) {
       nakshatraFromMoon,
       pada,
       retrograde,
-      effect: gocharaEffect(planet, houseFromMoon),
-      tara: taraBala(natalMoonNakshatraIndex, nakshatraIndex),
+      effect,
+      tara,
+      overall: overallReading(effect, tara.nature),
       latta: LATTA_NAKSHATRA_COUNTS[planet]?.includes(nakshatraFromMoon) ?? false,
       maleficTransit: specificMaleficTransit(planet, houseFromMoon),
       areaOfInfluence: HOUSE_AREA_OF_INFLUENCE[houseFromMoon],

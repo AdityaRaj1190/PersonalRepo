@@ -12,6 +12,18 @@ function effectLabel(effect) {
   return effect === 'favorable' ? 'Favorable' : 'Challenging';
 }
 
+const OVERALL_LABELS = {
+  favorable: 'Favorable',
+  'use caution': 'Use Caution',
+  'mixed signals': 'Mixed Signals',
+};
+
+const OVERALL_CLASSES = {
+  favorable: 'transit-effect-favorable',
+  'use caution': 'transit-effect-challenging',
+  'mixed signals': 'transit-effect-mixed',
+};
+
 function formatWeekRange(start, end) {
   const opts = { month: 'short', day: 'numeric' };
   return `${start.toLocaleDateString(undefined, opts)} – ${end.toLocaleDateString(undefined, opts)}`;
@@ -138,23 +150,18 @@ export default function TransitPanel({ natalChart }) {
 
       {tab === 'positions' && (
         <div className="transit-tabpanel">
+          <h4 className="transit-outlook-title">Where Each Graha Is</h4>
           <div className="planet-table-wrapper">
             <table className="planet-table">
               <thead>
                 <tr>
                   <th>Planet</th>
-                  <th>Rashi</th>
+                  <th>Sign</th>
                   <th>Degree</th>
                   <th>House (from Moon)</th>
                   <th>House (from Lagna)</th>
                   <th>Nakshatra</th>
-                  <th>Nakshatra (from Moon)</th>
                   <th>Pada</th>
-                  <th>Effect</th>
-                  <th>Tara Bala</th>
-                  <th>Latta</th>
-                  <th>Named Transit</th>
-                  <th>Area of Influence</th>
                 </tr>
               </thead>
               <tbody>
@@ -169,8 +176,32 @@ export default function TransitPanel({ natalChart }) {
                     <td>{p.houseFromMoon}</td>
                     <td>{p.houseFromLagna}</td>
                     <td>{p.nakshatra}</td>
-                    <td>{p.nakshatraFromMoon}</td>
                     <td>{p.pada}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <h4 className="transit-outlook-title">What It Means</h4>
+          <div className="planet-table-wrapper">
+            <table className="planet-table">
+              <thead>
+                <tr>
+                  <th>Planet</th>
+                  <th>Overall</th>
+                  <th>Gochara Effect</th>
+                  <th>Tara Bala</th>
+                  <th>Latta</th>
+                  <th>Named Transit</th>
+                  <th>Area of Influence</th>
+                </tr>
+              </thead>
+              <tbody>
+                {transit.planets.map((p) => (
+                  <tr key={p.planet}>
+                    <td>{p.planet}</td>
+                    <td className={OVERALL_CLASSES[p.overall]}>{OVERALL_LABELS[p.overall]}</td>
                     <td className={`transit-effect-${p.effect}`}>{effectLabel(p.effect)}</td>
                     <td className={`transit-tara-${p.tara.nature}`}>{p.tara.name}</td>
                     <td className={p.latta ? 'transit-effect-challenging' : ''}>{p.latta ? 'Yes' : '–'}</td>
@@ -184,9 +215,11 @@ export default function TransitPanel({ natalChart }) {
             </table>
           </div>
           <p className="transit-nakshatra-note">
-            Tara Bala and Latta are counted from your birth (Janma) nakshatra; "Named Transit" flags only
-            the well-established doshas (Saturn's Sade Sati / Ashtama Shani / Kantaka Shani, Mars's 4-8-12
-            transit rule) rather than every weak placement. These are teaching-level, simplified readings.
+            "Gochara Effect" and "Tara Bala" are two independent classical readings of the same transit
+            (one from the house it's sitting in, one from its nakshatra), so they can point different
+            ways - "Overall" is the plain-language takeaway once both are weighed together, and is what's
+            worth actually paying attention to. "Latta" and "Named Transit" flag a couple of specific,
+            well-known afflictions rather than every weak placement.
           </p>
         </div>
       )}

@@ -665,6 +665,11 @@ button[type='submit']:disabled {
   font-weight: 600;
 }
 
+.transit-effect-mixed {
+  color: var(--debilitated);
+  font-weight: 600;
+}
+
 .transit-outlook-title {
   font-size: 14px;
   margin: 8px 0 0;
