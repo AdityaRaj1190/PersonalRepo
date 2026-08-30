@@ -332,6 +332,115 @@ function vargaRashi(rashi, degreeInRashi, varga) {
 }
 
 /**
+ * Gochara (transit) favorable houses, counted from the Moon (Chandra
+ * Rashi), per the classical Vedic transit rules. A transiting planet
+ * sitting in one of its listed houses-from-Moon is read as broadly
+ * favorable; any other house is read as challenging. This is the standard
+ * teaching-level table (not the full Vedha/Ashtakavarga system).
+ */
+export const GOCHARA_FAVORABLE_HOUSES = {
+  Sun: [3, 6, 10, 11],
+  Moon: [1, 3, 6, 7, 10, 11],
+  Mars: [3, 6, 11],
+  Mercury: [2, 4, 6, 8, 10, 11],
+  Jupiter: [2, 5, 7, 9, 11],
+  Venus: [1, 2, 3, 4, 5, 8, 9, 11, 12],
+  Saturn: [3, 6, 11],
+  Rahu: [3, 6, 11],
+  Ketu: [3, 6, 11],
+};
+
+function gocharaEffect(planet, houseFromMoon) {
+  return GOCHARA_FAVORABLE_HOUSES[planet].includes(houseFromMoon) ? 'favorable' : 'challenging';
+}
+
+/**
+ * Tara Bala: the 9-fold nakshatra cycle counted from the birth (Janma)
+ * nakshatra to a given nakshatra, cycling every 9 nakshatras (3x through
+ * the 27). Odd-numbered groups (1,3,5,7) are classically inauspicious.
+ */
+const TARA_NAMES = [
+  'Janma', 'Sampat', 'Vipat', 'Kshema', 'Pratyak', 'Sadhaka', 'Vadha', 'Mitra', 'Parama Mitra',
+];
+const TARA_NATURE = [
+  'neutral', 'good', 'bad', 'good', 'bad', 'good', 'bad', 'good', 'good',
+];
+
+function taraBala(birthNakshatraIndex, currentNakshatraIndex) {
+  const diff = (currentNakshatraIndex - birthNakshatraIndex + 27) % 27;
+  const taraIndex = diff % 9;
+  return { name: TARA_NAMES[taraIndex], nature: TARA_NATURE[taraIndex] };
+}
+
+/**
+ * Compute the current (Gochara) transit positions of every graha against
+ * an already-computed natal (D1) chart. Transit houses are counted two
+ * ways, both standard in practice: from the natal Moon sign (the primary
+ * Gochara reference) and from the natal Lagna. No new geolocation is
+ * needed - transit house placement is read against the birth chart's
+ * fixed houses, not a "chart cast for right now".
+ * @param {ReturnType<typeof computeBirthChart>} natalChart
+ * @param {Date} transitUtcDate - the moment to compute transits for
+ */
+export function computeTransitChart(natalChart, transitUtcDate) {
+  const jd = toJulianDay(transitUtcDate);
+  const ayanamsa = lahiriAyanamsa(jd);
+
+  const natalMoon = natalChart.planets.find((p) => p.planet === 'Moon');
+  const natalMoonRashi = natalMoon.rashi;
+  const natalMoonNakshatraIndex = NAKSHATRAS.indexOf(natalMoon.nakshatra);
+  const natalAscRashi = natalChart.ascendant.rashi;
+
+  const planets = PLANETS.map((planet) => {
+    let tropical;
+    if (planet === 'Rahu') {
+      tropical = meanLunarNodeLongitude(jd);
+    } else if (planet === 'Ketu') {
+      tropical = normalizeDegrees(meanLunarNodeLongitude(jd) + 180);
+    } else {
+      tropical = tropicalLongitude(planet, transitUtcDate);
+    }
+    const sidereal = normalizeDegrees(tropical - ayanamsa);
+    const rashi = rashiOf(sidereal);
+    const degreeInRashi = sidereal % 30;
+    const houseFromMoon = ((rashi - natalMoonRashi + 12) % 12) + 1;
+    const houseFromLagna = ((rashi - natalAscRashi + 12) % 12) + 1;
+    const { index: nakshatraIndex, pada } = nakshatraOf(sidereal);
+    const retrograde = planet === 'Rahu' || planet === 'Ketu' ? false : isRetrograde(planet, transitUtcDate);
+
+    return {
+      planet,
+      longitude: sidereal,
+      degreeInRashi,
+      rashi,
+      rashiName: RASHIS[rashi],
+      houseFromMoon,
+      houseFromLagna,
+      nakshatra: NAKSHATRAS[nakshatraIndex],
+      pada,
+      retrograde,
+      effect: gocharaEffect(planet, houseFromMoon),
+    };
+  });
+
+  const transitMoon = planets.find((p) => p.planet === 'Moon');
+  const transitMoonNakshatraIndex = NAKSHATRAS.indexOf(transitMoon.nakshatra);
+  const tara = taraBala(natalMoonNakshatraIndex, transitMoonNakshatraIndex);
+  const favorableCount = planets.filter((p) => p.effect === 'favorable').length;
+
+  return {
+    ayanamsa,
+    generatedAt: transitUtcDate,
+    natalMoonRashiName: RASHIS[natalMoonRashi],
+    natalMoonNakshatra: natalMoon.nakshatra,
+    planets,
+    tara,
+    favorableCount,
+    totalCount: planets.length,
+  };
+}
+
+/**
  * Derive a divisional (varga) chart from an already-computed D1 chart.
  * Divisional charts are sign-based (no independent degree/nakshatra of
  * their own), so only rashi/house are meaningful; retrograde/combust state

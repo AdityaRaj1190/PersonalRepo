@@ -3,6 +3,7 @@ import BirthChartForm from './components/BirthChartForm';
 import BirthSummary from './components/BirthSummary';
 import ChartDisplay from './components/ChartDisplay';
 import PlanetTable from './components/PlanetTable';
+import TransitPanel from './components/TransitPanel';
 import { computeBirthChart, computeDivisionalChart } from './lib/astro';
 import { localToUtc } from './lib/geocode';
 import './App.css';
@@ -128,6 +129,8 @@ export default function App() {
 
             <ChartDisplay panels={chartPanels} />
             <PlanetTable chart={displayedChart} />
+
+            <TransitPanel natalChart={result.chart} />
           </section>
         )}
       </main>
