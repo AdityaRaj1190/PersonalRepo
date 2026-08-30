@@ -733,27 +733,6 @@ button[type='submit']:disabled {
   color: var(--text-h);
 }
 
-.transit-nakshatra-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 16px;
-}
-
-.transit-nakshatra-label {
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--text);
-  margin: 0 0 4px;
-}
-
-.transit-nakshatra-value {
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--text-h);
-  margin: 0;
-}
-
 .transit-tara-good {
   color: var(--exalted);
 }

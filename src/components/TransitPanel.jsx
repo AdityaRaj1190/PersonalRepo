@@ -5,7 +5,6 @@ import { formatDegree } from '../lib/format';
 const TABS = [
   { id: 'overview', label: 'Overview' },
   { id: 'positions', label: 'Planet Positions' },
-  { id: 'nakshatra', label: 'Nakshatra' },
 ];
 
 function effectLabel(effect) {
@@ -220,36 +219,6 @@ export default function TransitPanel({ natalChart }) {
             ways - "Overall" is the plain-language takeaway once both are weighed together, and is what's
             worth actually paying attention to. "Latta" and "Named Transit" flag a couple of specific,
             well-known afflictions rather than every weak placement.
-          </p>
-        </div>
-      )}
-
-      {tab === 'nakshatra' && (
-        <div className="transit-tabpanel">
-          <div className="transit-nakshatra-grid">
-            <div>
-              <p className="transit-nakshatra-label">Birth Star (Janma Nakshatra)</p>
-              <p className="transit-nakshatra-value">{transit.natalMoonNakshatra}</p>
-            </div>
-            <div>
-              <p className="transit-nakshatra-label">Current Moon Nakshatra</p>
-              <p className="transit-nakshatra-value">
-                {transit.planets.find((p) => p.planet === 'Moon').nakshatra} - pada{' '}
-                {transit.planets.find((p) => p.planet === 'Moon').pada}
-              </p>
-            </div>
-            <div>
-              <p className="transit-nakshatra-label">Tara Bala</p>
-              <p className={`transit-nakshatra-value transit-tara-${transit.tara.nature}`}>
-                {transit.tara.name} ({transit.tara.nature})
-              </p>
-            </div>
-          </div>
-          <p className="transit-nakshatra-note">
-            Tara Bala reads the current Moon's nakshatra relative to your birth nakshatra on a 9-fold
-            cycle; "good" and "bad" here are the classical broad-strokes reading, not a full prediction.
-            Every graha's own nakshatra-from-Moon count, Tara Bala, and Latta status is in the
-            Planet Positions tab.
           </p>
         </div>
       )}
