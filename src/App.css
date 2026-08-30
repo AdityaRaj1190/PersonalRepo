@@ -195,6 +195,41 @@ button[type='submit']:disabled {
   color: #fff;
 }
 
+.main-tabs {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  max-width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 4px;
+  margin: 4px 0 20px;
+  box-sizing: border-box;
+}
+
+.main-tabs button {
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 8px 18px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.main-tabs button.active {
+  background: var(--accent);
+  color: #fff;
+}
+
+.main-tabpanel {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
 .varga-toggle {
   display: inline-flex;
   flex-wrap: wrap;
@@ -495,9 +530,9 @@ button[type='submit']:disabled {
 }
 
 .transit-panel {
-  margin-top: 32px;
-  padding-top: 24px;
-  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .transit-panel-header {
