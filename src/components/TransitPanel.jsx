@@ -56,7 +56,10 @@ export default function TransitPanel({ natalChart }) {
               <li key={p.planet} className={`transit-effect-${p.effect}`}>
                 <span className="transit-overview-planet">{p.planet}</span>
                 <span className="transit-overview-detail">
-                  in {p.rashiName} &middot; house {p.houseFromMoon} from Moon &middot; {effectLabel(p.effect)}
+                  in {p.rashiName} &middot; house {p.houseFromMoon} from Moon ({p.areaOfInfluence}) &middot;{' '}
+                  {effectLabel(p.effect)}
+                  {p.maleficTransit && <> &middot; {p.maleficTransit}</>}
+                  {p.latta && <> &middot; Latta</>}
                 </span>
               </li>
             ))}
@@ -76,8 +79,13 @@ export default function TransitPanel({ natalChart }) {
                   <th>House (from Moon)</th>
                   <th>House (from Lagna)</th>
                   <th>Nakshatra</th>
+                  <th>Nakshatra (from Moon)</th>
                   <th>Pada</th>
                   <th>Effect</th>
+                  <th>Tara Bala</th>
+                  <th>Latta</th>
+                  <th>Named Transit</th>
+                  <th>Area of Influence</th>
                 </tr>
               </thead>
               <tbody>
@@ -92,13 +100,25 @@ export default function TransitPanel({ natalChart }) {
                     <td>{p.houseFromMoon}</td>
                     <td>{p.houseFromLagna}</td>
                     <td>{p.nakshatra}</td>
+                    <td>{p.nakshatraFromMoon}</td>
                     <td>{p.pada}</td>
                     <td className={`transit-effect-${p.effect}`}>{effectLabel(p.effect)}</td>
+                    <td className={`transit-tara-${p.tara.nature}`}>{p.tara.name}</td>
+                    <td className={p.latta ? 'transit-effect-challenging' : ''}>{p.latta ? 'Yes' : '–'}</td>
+                    <td className={p.maleficTransit ? 'transit-effect-challenging' : ''}>
+                      {p.maleficTransit ?? '–'}
+                    </td>
+                    <td>{p.areaOfInfluence}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
+          <p className="transit-nakshatra-note">
+            Tara Bala and Latta are counted from your birth (Janma) nakshatra; "Named Transit" flags only
+            the well-established doshas (Saturn's Sade Sati / Ashtama Shani / Kantaka Shani, Mars's 4-8-12
+            transit rule) rather than every weak placement. These are teaching-level, simplified readings.
+          </p>
         </div>
       )}
 
@@ -126,8 +146,8 @@ export default function TransitPanel({ natalChart }) {
           <p className="transit-nakshatra-note">
             Tara Bala reads the current Moon's nakshatra relative to your birth nakshatra on a 9-fold
             cycle; "good" and "bad" here are the classical broad-strokes reading, not a full prediction.
-            All 27 nakshatras are shown transiting one graha (the Moon) for now - individual planetary
-            nakshatra transits are a natural next step here.
+            Every graha's own nakshatra-from-Moon count, Tara Bala, and Latta status is in the
+            Planet Positions tab.
           </p>
         </div>
       )}

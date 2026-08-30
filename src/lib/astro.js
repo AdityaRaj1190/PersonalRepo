@@ -373,6 +373,59 @@ function taraBala(birthNakshatraIndex, currentNakshatraIndex) {
 }
 
 /**
+ * Latta ("kick") dosha: a commonly-taught rule (Tamil/Kannada panchangam
+ * tradition) marking specific nakshatra distances - counted 1-27 from the
+ * natal Moon's (Janma) nakshatra - at which the three "cruel" grahas are
+ * said to afflict rather than merely transit. Sources vary on the exact
+ * counts; this is the version most often cited, kept as a simplified,
+ * teaching-level flag rather than a canonical calculation.
+ */
+const LATTA_NAKSHATRA_COUNTS = {
+  Sun: [6, 8, 12],
+  Mars: [4, 8],
+  Saturn: [3, 5, 7],
+};
+
+/**
+ * Named malefic Gochara doshas, checked by house-from-Moon. Only the
+ * well-established, widely-named ones are flagged - Saturn's Sade Sati /
+ * Ashtama Shani / Kantaka Shani, and Mars's 4-8-12 transit rule - rather
+ * than every possible weak placement, to keep this to doshas a reader
+ * would recognize by name.
+ */
+function specificMaleficTransit(planet, houseFromMoon) {
+  if (planet === 'Saturn') {
+    if (houseFromMoon === 8) return 'Ashtama Shani';
+    if ([12, 1, 2].includes(houseFromMoon)) return 'Sade Sati';
+    if ([4, 7, 10].includes(houseFromMoon)) return 'Kantaka Shani';
+  }
+  if (planet === 'Mars' && [4, 8, 12].includes(houseFromMoon)) {
+    return 'Kuja Gochara Dosha';
+  }
+  return null;
+}
+
+/**
+ * Broad classical significations (karakatva) of each house-from-Moon, used
+ * to describe which area of life a transiting graha's current placement
+ * is read as touching.
+ */
+const HOUSE_AREA_OF_INFLUENCE = {
+  1: 'Self, health, physical vitality',
+  2: 'Wealth, family, speech',
+  3: 'Courage, effort, siblings',
+  4: 'Home, mother, emotional comfort',
+  5: 'Children, intellect, creativity',
+  6: 'Health challenges, debts, rivals',
+  7: 'Partnerships, marriage',
+  8: 'Transformation, obstacles, longevity',
+  9: 'Fortune, dharma, father',
+  10: 'Career, status, public life',
+  11: 'Gains, income, aspirations',
+  12: 'Losses, expenses, spirituality',
+};
+
+/**
  * Compute the current (Gochara) transit positions of every graha against
  * an already-computed natal (D1) chart. Transit houses are counted two
  * ways, both standard in practice: from the natal Moon sign (the primary
@@ -407,6 +460,7 @@ export function computeTransitChart(natalChart, transitUtcDate) {
     const houseFromLagna = ((rashi - natalAscRashi + 12) % 12) + 1;
     const { index: nakshatraIndex, pada } = nakshatraOf(sidereal);
     const retrograde = planet === 'Rahu' || planet === 'Ketu' ? false : isRetrograde(planet, transitUtcDate);
+    const nakshatraFromMoon = ((nakshatraIndex - natalMoonNakshatraIndex + 27) % 27) + 1;
 
     return {
       planet,
@@ -417,15 +471,19 @@ export function computeTransitChart(natalChart, transitUtcDate) {
       houseFromMoon,
       houseFromLagna,
       nakshatra: NAKSHATRAS[nakshatraIndex],
+      nakshatraFromMoon,
       pada,
       retrograde,
       effect: gocharaEffect(planet, houseFromMoon),
+      tara: taraBala(natalMoonNakshatraIndex, nakshatraIndex),
+      latta: LATTA_NAKSHATRA_COUNTS[planet]?.includes(nakshatraFromMoon) ?? false,
+      maleficTransit: specificMaleficTransit(planet, houseFromMoon),
+      areaOfInfluence: HOUSE_AREA_OF_INFLUENCE[houseFromMoon],
     };
   });
 
   const transitMoon = planets.find((p) => p.planet === 'Moon');
-  const transitMoonNakshatraIndex = NAKSHATRAS.indexOf(transitMoon.nakshatra);
-  const tara = taraBala(natalMoonNakshatraIndex, transitMoonNakshatraIndex);
+  const tara = transitMoon.tara;
   const favorableCount = planets.filter((p) => p.effect === 'favorable').length;
 
   return {
