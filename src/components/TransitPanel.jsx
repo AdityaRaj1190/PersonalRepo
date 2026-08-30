@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { computeTransitChart, computeTransitForecast } from '../lib/astro';
+import { computeTransitChart, computeTransitOutlook } from '../lib/astro';
 import { formatDegree } from '../lib/format';
 
 const TABS = [
@@ -23,9 +23,8 @@ const OVERALL_CLASSES = {
   'mixed signals': 'transit-effect-mixed',
 };
 
-function formatWeekRange(start, end) {
-  const opts = { month: 'short', day: 'numeric' };
-  return `${start.toLocaleDateString(undefined, opts)} – ${end.toLocaleDateString(undefined, opts)}`;
+function formatCheckpointDate(date) {
+  return date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
 }
 
 export default function TransitPanel({ natalChart }) {
@@ -35,7 +34,7 @@ export default function TransitPanel({ natalChart }) {
   const refreshTimeoutRef = useRef(null);
 
   const transit = useMemo(() => computeTransitChart(natalChart, now), [natalChart, now]);
-  const weeklyOutlook = useMemo(() => computeTransitForecast(natalChart, now, 3), [natalChart, now]);
+  const outlook = useMemo(() => computeTransitOutlook(natalChart, now), [natalChart, now]);
 
   useEffect(() => () => clearTimeout(refreshTimeoutRef.current), []);
 
@@ -76,22 +75,24 @@ export default function TransitPanel({ natalChart }) {
 
       {tab === 'overview' && (
         <div className="transit-tabpanel">
-          <h4 className="transit-outlook-title">3-Week Outlook</h4>
+          <h4 className="transit-outlook-title">Next 10 Days</h4>
           <div className="transit-week-grid">
-            {weeklyOutlook.map((week) => (
-              <div className="transit-week-card" key={week.weekIndex}>
-                <p className="transit-week-range">{formatWeekRange(week.startDate, week.endDate)}</p>
-                <p className="transit-week-headline">{week.narrative.headline}</p>
+            {outlook.map((checkpoint) => (
+              <div className="transit-week-card" key={checkpoint.offsetDays}>
+                <p className="transit-week-range">
+                  Day {checkpoint.offsetDays} &middot; {formatCheckpointDate(checkpoint.date)}
+                </p>
+                <p className="transit-week-headline">{checkpoint.narrative.headline}</p>
 
-                {week.narrative.leanInto && (
-                  <p className="transit-week-advice transit-effect-favorable">{week.narrative.leanInto}</p>
+                {checkpoint.narrative.leanInto && (
+                  <p className="transit-week-advice transit-effect-favorable">{checkpoint.narrative.leanInto}</p>
                 )}
 
-                {week.narrative.takeCare && (
-                  <p className="transit-week-advice transit-effect-challenging">{week.narrative.takeCare}</p>
+                {checkpoint.narrative.takeCare && (
+                  <p className="transit-week-advice transit-effect-challenging">{checkpoint.narrative.takeCare}</p>
                 )}
 
-                {week.narrative.watchouts.map((w) => (
+                {checkpoint.narrative.watchouts.map((w) => (
                   <div className="transit-week-watchout" key={w.planet}>
                     <p className="transit-week-watchout-title">
                       {w.planet}'s {w.label}
@@ -103,9 +104,9 @@ export default function TransitPanel({ natalChart }) {
             ))}
           </div>
           <p className="transit-nakshatra-note">
-            Each week is a snapshot taken at its start - the slower grahas hold their house all 3 weeks,
-            while the Moon (and to a lesser extent Mercury/Venus/Mars) can shift sign or nakshatra within
-            a week; check the Planet Positions tab on any given day for the exact picture.
+            Each card is a snapshot for that single day - the Moon changes sign and nakshatra every day
+            or two, so it drives most of the change you'll see here; the slower grahas barely move across
+            10 days. Check the Planet Positions tab for the exact picture on any given day.
           </p>
 
           <h4 className="transit-outlook-title">Grahas Right Now</h4>

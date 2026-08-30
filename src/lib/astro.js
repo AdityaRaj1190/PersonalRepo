@@ -564,7 +564,7 @@ export function computeTransitChart(natalChart, transitUtcDate) {
   };
 }
 
-const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+const DAY_MS = 24 * 60 * 60 * 1000;
 const MAX_CATEGORIES_SHOWN = 3;
 
 const listFormatter =
@@ -599,57 +599,58 @@ function capitalize(s) {
 
 const TIER_HEADLINES = {
   favorable: [
-    'A broadly favorable, steady week.',
+    'Conditions stay broadly favorable and steady.',
     'A comfortable stretch overall - momentum stays on your side.',
-    'Skies stay mostly clear this week.',
+    'Skies stay mostly clear around this time.',
   ],
   mixed: [
-    'A mixed week - some support, some friction.',
-    'A balancing act this week - progress needs a bit more effort.',
-    'Give and take this week; be selective about where you push.',
+    'A mixed stretch - some support, some friction.',
+    'A balancing act around this time - progress needs a bit more effort.',
+    'Give and take here; be selective about where you push.',
   ],
   demanding: [
-    'A demanding week - move carefully and avoid big new commitments.',
-    'A week that asks for patience - keep plans flexible.',
-    "Proceed cautiously this week - it's not the time to force things.",
+    'A demanding stretch - move carefully and avoid big new commitments.',
+    'A patch that asks for patience - keep plans flexible.',
+    "Proceed cautiously here - it's not the time to force things.",
   ],
 };
 
 const LEAN_INTO_TEMPLATES = [
-  (list) => `Good week to make progress on ${list}.`,
+  (list) => `Good time to make progress on ${list}.`,
   (list) => `${capitalize(list)} are where the energy favors you right now.`,
   (list) => `Worth prioritizing ${list} while the support lasts.`,
 ];
 
 const TAKE_CARE_TEMPLATES = [
   (list) => `Go easy on ${list} - avoid rushing decisions here.`,
-  (list) => `Keep expectations modest around ${list} this week.`,
+  (list) => `Keep expectations modest around ${list} for now.`,
   (list) => `${capitalize(list)} need extra patience right now - don't force outcomes.`,
 ];
 
 /**
- * Build a plain-language advice narrative for one week's transit snapshot:
- * an overall headline based on the favorable/challenging balance, what to
- * lean into, what to be careful with, and one explained sentence per
- * named dosha/Latta in play - written for a reader with no prior
- * astrology vocabulary. `weekIndex` and `previousWatchLabels` let the same
- * underlying situation (which often repeats week to week, since most
- * grahas don't change houses within a month) get worded differently
- * instead of printing an identical paragraph three times running.
+ * Build a plain-language advice narrative for one checkpoint's transit
+ * snapshot: an overall headline based on the favorable/challenging
+ * balance, what to lean into, what to be careful with, and one explained
+ * sentence per named dosha/Latta in play - written for a reader with no
+ * prior astrology vocabulary. `variantIndex` and `previousWatchLabels` let
+ * the same underlying situation (which often repeats from one checkpoint
+ * to the next, since most grahas don't change houses within a couple of
+ * weeks) get worded differently instead of printing an identical
+ * paragraph over and over.
  */
-function buildWeekNarrative(transit, favorablePlanets, challengingPlanets, specialWatch, weekIndex, previousWatchLabels) {
+function buildPeriodNarrative(transit, favorablePlanets, challengingPlanets, specialWatch, variantIndex, previousWatchLabels) {
   const ratio = favorablePlanets.length / transit.totalCount;
   const tier = ratio >= 0.6 ? 'favorable' : ratio >= 0.4 ? 'mixed' : 'demanding';
-  const headline = TIER_HEADLINES[tier][weekIndex % TIER_HEADLINES[tier].length];
+  const headline = TIER_HEADLINES[tier][variantIndex % TIER_HEADLINES[tier].length];
 
   const leanIntoList = joinFriendly(topCategories(favorablePlanets));
   const leanInto = leanIntoList
-    ? LEAN_INTO_TEMPLATES[weekIndex % LEAN_INTO_TEMPLATES.length](leanIntoList)
+    ? LEAN_INTO_TEMPLATES[variantIndex % LEAN_INTO_TEMPLATES.length](leanIntoList)
     : '';
 
   const takeCareList = joinFriendly(topCategories(challengingPlanets));
   const takeCare = takeCareList
-    ? TAKE_CARE_TEMPLATES[weekIndex % TAKE_CARE_TEMPLATES.length](takeCareList)
+    ? TAKE_CARE_TEMPLATES[variantIndex % TAKE_CARE_TEMPLATES.length](takeCareList)
     : '';
 
   const watchouts = specialWatch.map((p) => {
@@ -659,7 +660,7 @@ function buildWeekNarrative(transit, favorablePlanets, challengingPlanets, speci
       planet: p.planet,
       label,
       advice: continuing
-        ? `Still in effect from last week - see week 1 for what ${label} means and why it matters.`
+        ? `Still active from the earlier checkpoint above - see there for what ${label} means and why it matters.`
         : MALEFIC_TRANSIT_EXPLANATIONS[label],
     };
   });
@@ -667,36 +668,35 @@ function buildWeekNarrative(transit, favorablePlanets, challengingPlanets, speci
   return { headline, leanInto, takeCare, watchouts };
 }
 
+const DEFAULT_OUTLOOK_DAY_OFFSETS = [2, 4, 6, 8, 10];
+
 /**
- * Week-by-week Gochara outlook: one computeTransitChart() snapshot taken at
- * the start of each week, read against the natal chart. Snapshotting
- * (rather than tracking every sign/nakshatra change within the week) is a
- * deliberate simplification - the slow grahas (Jupiter onward, plus
- * Rahu/Ketu) don't move houses within a 3-week span anyway, and the
- * fast ones (Sun, Moon, Mercury, Venus, Mars) are summarized by where
- * they stand as the week begins.
+ * Short-term Gochara outlook: a handful of computeTransitChart() snapshots
+ * over the next ~10 days, spaced a couple of days apart. A multi-week
+ * outlook mostly repeats itself - the slow grahas don't move houses in
+ * that span - so this leans on the Moon instead, which changes sign and
+ * nakshatra every day or two and is the main source of real day-to-day
+ * variation in a Gochara reading.
  * @param {ReturnType<typeof computeBirthChart>} natalChart
- * @param {Date} startDate - first day of week 1
- * @param {number} [weeks] - how many weekly snapshots to produce
+ * @param {Date} startDate - "today"
+ * @param {number[]} [dayOffsets] - how many days out each checkpoint sits
  */
-export function computeTransitForecast(natalChart, startDate, weeks = 3) {
+export function computeTransitOutlook(natalChart, startDate, dayOffsets = DEFAULT_OUTLOOK_DAY_OFFSETS) {
   const previousWatchLabels = new Map();
-  return Array.from({ length: weeks }, (_, i) => {
-    const weekStart = new Date(startDate.getTime() + i * WEEK_MS);
-    const weekEnd = new Date(weekStart.getTime() + WEEK_MS - 1);
-    const transit = computeTransitChart(natalChart, weekStart);
+  return dayOffsets.map((offsetDays, i) => {
+    const date = new Date(startDate.getTime() + offsetDays * DAY_MS);
+    const transit = computeTransitChart(natalChart, date);
     const favorablePlanets = transit.planets.filter((p) => p.effect === 'favorable');
     const challengingPlanets = transit.planets.filter((p) => p.effect === 'challenging');
     const specialWatch = transit.planets.filter((p) => p.maleficTransit || p.latta);
-    const narrative = buildWeekNarrative(transit, favorablePlanets, challengingPlanets, specialWatch, i, previousWatchLabels);
+    const narrative = buildPeriodNarrative(transit, favorablePlanets, challengingPlanets, specialWatch, i, previousWatchLabels);
 
     previousWatchLabels.clear();
     for (const p of specialWatch) previousWatchLabels.set(p.planet, p.maleficTransit ?? 'Latta');
 
     return {
-      weekIndex: i,
-      startDate: weekStart,
-      endDate: weekEnd,
+      offsetDays,
+      date,
       transit,
       favorablePlanets,
       challengingPlanets,
