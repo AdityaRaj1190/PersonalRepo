@@ -739,10 +739,8 @@ function buildPeriodNarrative(
   const headline = TIER_HEADLINES[tier][variantIndex % TIER_HEADLINES[tier].length];
 
   const { leanEntries, careEntries } = netCategoryAdvice(favorablePlanets, challengingPlanets);
-  const leanSentences = renderCategoryEntries(leanEntries, 'lean', previousCategoryState);
-  const careSentences = renderCategoryEntries(careEntries, 'care', previousCategoryState);
-  const leanInto = leanSentences.length ? `${capitalize(leanSentences.join('. '))}.` : '';
-  const takeCare = careSentences.length ? `${capitalize(careSentences.join('. '))}.` : '';
+  const leanInto = renderCategoryEntries(leanEntries, 'lean', previousCategoryState).map((s) => `${capitalize(s)}.`);
+  const takeCare = renderCategoryEntries(careEntries, 'care', previousCategoryState).map((s) => `${capitalize(s)}.`);
 
   const watchouts = specialWatch.map((p) => {
     const label = p.maleficTransit ?? 'Latta';

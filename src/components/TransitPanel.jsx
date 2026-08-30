@@ -83,12 +83,20 @@ export default function TransitPanel({ natalChart }) {
                 <p className="transit-week-range">{formatWindowRange(window.startDate, window.endDate)}</p>
                 <p className="transit-week-headline">{window.narrative.headline}</p>
 
-                {window.narrative.leanInto && (
-                  <p className="transit-week-advice transit-effect-favorable">{window.narrative.leanInto}</p>
+                {window.narrative.leanInto.length > 0 && (
+                  <ul className="transit-week-advice-list transit-effect-favorable">
+                    {window.narrative.leanInto.map((sentence, i) => (
+                      <li key={i}>{sentence}</li>
+                    ))}
+                  </ul>
                 )}
 
-                {window.narrative.takeCare && (
-                  <p className="transit-week-advice transit-effect-challenging">{window.narrative.takeCare}</p>
+                {window.narrative.takeCare.length > 0 && (
+                  <ul className="transit-week-advice-list transit-effect-challenging">
+                    {window.narrative.takeCare.map((sentence, i) => (
+                      <li key={i}>{sentence}</li>
+                    ))}
+                  </ul>
                 )}
 
                 {window.narrative.watchouts.map((w) => (
