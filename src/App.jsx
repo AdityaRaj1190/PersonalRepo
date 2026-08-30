@@ -3,9 +3,15 @@ import BirthChartForm from './components/BirthChartForm';
 import BirthSummary from './components/BirthSummary';
 import ChartDisplay from './components/ChartDisplay';
 import PlanetTable from './components/PlanetTable';
+import TransitPanel from './components/TransitPanel';
 import { computeBirthChart, computeDivisionalChart } from './lib/astro';
 import { localToUtc } from './lib/geocode';
 import './App.css';
+
+const MAIN_TABS = [
+  { id: 'chart', label: 'Chart Details' },
+  { id: 'transits', label: 'Current Transits' },
+];
 
 const VARGAS = [
   {
@@ -36,6 +42,7 @@ export default function App() {
   const [error, setError] = useState('');
   const [varga, setVarga] = useState(1);
   const [showD1, setShowD1] = useState(false);
+  const [mainTab, setMainTab] = useState('transits');
 
   const displayedChart = useMemo(() => {
     if (!result) return null;
@@ -62,6 +69,7 @@ export default function App() {
       const chart = computeBirthChart(utcDate, location.lat, location.lon);
       setResult({ name, location, local, timezone, offsetMinutes, chart });
       setVarga(1);
+      setMainTab('transits');
     } catch (err) {
       setError(err.message || 'Something went wrong while generating the chart.');
       setResult(null);
@@ -90,44 +98,69 @@ export default function App() {
               {result.location.label} &middot; timezone {result.timezone}
             </p>
 
-            <BirthSummary
-              name={result.name}
-              local={result.local}
-              location={result.location}
-              offsetMinutes={result.offsetMinutes}
-              chart={result.chart}
-            />
-
-            <div className="varga-toggle" role="group" aria-label="Divisional chart">
-              {VARGAS.map((v) => (
+            <div className="main-tabs" role="tablist" aria-label="Chart view">
+              {MAIN_TABS.map((t) => (
                 <button
-                  key={v.id}
+                  key={t.id}
                   type="button"
-                  className={varga === v.id ? 'active' : ''}
-                  onClick={() => setVarga(v.id)}
+                  role="tab"
+                  aria-selected={mainTab === t.id}
+                  className={mainTab === t.id ? 'active' : ''}
+                  onClick={() => setMainTab(t.id)}
                 >
-                  {v.label}
+                  {t.label}
                 </button>
               ))}
             </div>
-            <p className="varga-description">
-              {VARGAS.find((v) => v.id === varga).description}
-            </p>
 
-            {varga !== 1 && (
-              <div className="show-d1-toggle">
-                <input
-                  id="show-d1"
-                  type="checkbox"
-                  checked={showD1}
-                  onChange={(e) => setShowD1(e.target.checked)}
+            {mainTab === 'chart' && (
+              <div className="main-tabpanel">
+                <BirthSummary
+                  name={result.name}
+                  local={result.local}
+                  location={result.location}
+                  offsetMinutes={result.offsetMinutes}
+                  chart={result.chart}
                 />
-                <span>Compare with D1</span>
+
+                <div className="varga-toggle" role="group" aria-label="Divisional chart">
+                  {VARGAS.map((v) => (
+                    <button
+                      key={v.id}
+                      type="button"
+                      className={varga === v.id ? 'active' : ''}
+                      onClick={() => setVarga(v.id)}
+                    >
+                      {v.label}
+                    </button>
+                  ))}
+                </div>
+                <p className="varga-description">
+                  {VARGAS.find((v) => v.id === varga).description}
+                </p>
+
+                {varga !== 1 && (
+                  <div className="show-d1-toggle">
+                    <input
+                      id="show-d1"
+                      type="checkbox"
+                      checked={showD1}
+                      onChange={(e) => setShowD1(e.target.checked)}
+                    />
+                    <span>Compare with D1</span>
+                  </div>
+                )}
+
+                <ChartDisplay panels={chartPanels} />
+                <PlanetTable chart={displayedChart} />
               </div>
             )}
 
-            <ChartDisplay panels={chartPanels} />
-            <PlanetTable chart={displayedChart} />
+            {mainTab === 'transits' && (
+              <div className="main-tabpanel">
+                <TransitPanel natalChart={result.chart} />
+              </div>
+            )}
           </section>
         )}
       </main>

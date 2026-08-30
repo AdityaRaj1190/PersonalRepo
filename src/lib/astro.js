@@ -332,6 +332,484 @@ function vargaRashi(rashi, degreeInRashi, varga) {
 }
 
 /**
+ * Gochara (transit) favorable houses, counted from the Moon (Chandra
+ * Rashi), per the classical Vedic transit rules. A transiting planet
+ * sitting in one of its listed houses-from-Moon is read as broadly
+ * favorable; any other house is read as challenging. This is the standard
+ * teaching-level table (not the full Vedha/Ashtakavarga system).
+ */
+export const GOCHARA_FAVORABLE_HOUSES = {
+  Sun: [3, 6, 10, 11],
+  Moon: [1, 3, 6, 7, 10, 11],
+  Mars: [3, 6, 11],
+  Mercury: [2, 4, 6, 8, 10, 11],
+  Jupiter: [2, 5, 7, 9, 11],
+  Venus: [1, 2, 3, 4, 5, 8, 9, 11, 12],
+  Saturn: [3, 6, 11],
+  Rahu: [3, 6, 11],
+  Ketu: [3, 6, 11],
+};
+
+function gocharaEffect(planet, houseFromMoon) {
+  return GOCHARA_FAVORABLE_HOUSES[planet].includes(houseFromMoon) ? 'favorable' : 'challenging';
+}
+
+/**
+ * Tara Bala: the 9-fold nakshatra cycle counted from the birth (Janma)
+ * nakshatra to a given nakshatra, cycling every 9 nakshatras (3x through
+ * the 27). Odd-numbered groups (1,3,5,7) are classically inauspicious.
+ */
+const TARA_NAMES = [
+  'Janma', 'Sampat', 'Vipat', 'Kshema', 'Pratyak', 'Sadhaka', 'Vadha', 'Mitra', 'Parama Mitra',
+];
+const TARA_NATURE = [
+  'neutral', 'good', 'bad', 'good', 'bad', 'good', 'bad', 'good', 'good',
+];
+
+function taraBala(birthNakshatraIndex, currentNakshatraIndex) {
+  const diff = (currentNakshatraIndex - birthNakshatraIndex + 27) % 27;
+  const taraIndex = diff % 9;
+  return { name: TARA_NAMES[taraIndex], nature: TARA_NATURE[taraIndex] };
+}
+
+/**
+ * Gochara Effect (house-from-Moon) and Tara Bala (nakshatra-cycle) are two
+ * independent classical readings of the same transit, and can disagree -
+ * e.g. a planet can sit in a "favorable" house while its nakshatra falls
+ * in a "bad" Tara. Rather than let a reader wonder why the two columns
+ * contradict each other, this collapses them into one plain verdict:
+ * they only read as clearly favorable/unfavorable when both systems
+ * agree, otherwise it's called out as mixed.
+ */
+function overallReading(effect, taraNature) {
+  const taraGood = taraNature === 'good' || taraNature === 'neutral';
+  if (effect === 'favorable' && taraGood) return 'favorable';
+  if (effect === 'challenging' && !taraGood) return 'use caution';
+  return 'mixed signals';
+}
+
+/**
+ * Latta ("kick") dosha: a commonly-taught rule (Tamil/Kannada panchangam
+ * tradition) marking specific nakshatra distances - counted 1-27 from the
+ * natal Moon's (Janma) nakshatra - at which the three "cruel" grahas are
+ * said to afflict rather than merely transit. Sources vary on the exact
+ * counts; this is the version most often cited, kept as a simplified,
+ * teaching-level flag rather than a canonical calculation.
+ */
+const LATTA_NAKSHATRA_COUNTS = {
+  Sun: [6, 8, 12],
+  Mars: [4, 8],
+  Saturn: [3, 5, 7],
+};
+
+/**
+ * Named malefic Gochara doshas, checked by house-from-Moon. Only the
+ * well-established, widely-named ones are flagged - Saturn's Sade Sati /
+ * Ashtama Shani / Kantaka Shani, and Mars's 4-8-12 transit rule - rather
+ * than every possible weak placement, to keep this to doshas a reader
+ * would recognize by name.
+ */
+function specificMaleficTransit(planet, houseFromMoon) {
+  if (planet === 'Saturn') {
+    if (houseFromMoon === 8) return 'Ashtama Shani';
+    if ([12, 1, 2].includes(houseFromMoon)) return 'Sade Sati';
+    if ([4, 7, 10].includes(houseFromMoon)) return 'Kantaka Shani';
+  }
+  if (planet === 'Mars' && [4, 8, 12].includes(houseFromMoon)) {
+    return 'Kuja Gochara Dosha';
+  }
+  return null;
+}
+
+/**
+ * Plain-language, one-line explanations for the named transits/Latta -
+ * what the classical term means and what it practically suggests being
+ * careful about, for a reader with no prior astrology vocabulary.
+ */
+export const MALEFIC_TRANSIT_EXPLANATIONS = {
+  'Sade Sati':
+    "Saturn's long transit through the signs around your Moon. A stretch of extra responsibility and " +
+    'slow, grinding change - not misfortune by itself, but a good time to be disciplined, patient, and ' +
+    'careful with health and finances rather than starting big new ventures.',
+  'Ashtama Shani':
+    'Saturn transiting the 8th house from your Moon, classically the most disruptive of its transits. ' +
+    'Watch for sudden setbacks, health scares, or upheaval in routines - avoid risk-taking and lean on ' +
+    'caution until it passes.',
+  'Kantaka Shani':
+    "Saturn in one of the 'thorn' houses from your Moon - a milder, background-level stress on daily " +
+    'routines, health, or relationships. Worth noting, not worth worrying over.',
+  'Kuja Gochara Dosha':
+    'Mars transiting a house from your Moon classically linked to accidents, conflict, or impulsive ' +
+    'decisions. Drive carefully, watch your temper, and avoid rushed financial calls this week.',
+  Latta:
+    "A classical 'kick' transit - a short, sharp burst of friction or minor obstacles rather than a " +
+    'sustained affliction. Usually passes within days; nothing to plan around, just be a little more careful.',
+};
+
+/**
+ * Broad classical significations (karakatva) of each house-from-Moon, used
+ * to describe which area of life a transiting graha's current placement
+ * is read as touching.
+ */
+const HOUSE_AREA_OF_INFLUENCE = {
+  1: 'Self, health, physical vitality',
+  2: 'Wealth, family, speech',
+  3: 'Courage, effort, siblings',
+  4: 'Home, mother, emotional comfort',
+  5: 'Children, intellect, creativity',
+  6: 'Health challenges, debts, rivals',
+  7: 'Partnerships, marriage',
+  8: 'Transformation, obstacles, longevity',
+  9: 'Fortune, dharma, father',
+  10: 'Career, status, public life',
+  11: 'Gains, income, aspirations',
+  12: 'Losses, expenses, spirituality',
+};
+
+/**
+ * A single, everyday life-category label for each house-from-Moon - the
+ * same significations as HOUSE_AREA_OF_INFLUENCE, but compressed to one
+ * short tag so a weekly outlook can name 2-3 concrete things to focus on
+ * instead of a long list of classical nouns.
+ */
+const HOUSE_CATEGORY = {
+  1: 'Health',
+  2: 'Savings',
+  3: 'Effort & Communication',
+  4: 'Happiness',
+  5: 'Education & Speculation',
+  6: 'Health & Debts',
+  7: 'Marriage',
+  8: 'Sudden Setbacks & Health Scares',
+  9: 'Fortune & Growth',
+  10: 'Career',
+  11: 'Investment',
+  12: 'Expenditure',
+};
+
+/**
+ * Compute the current (Gochara) transit positions of every graha against
+ * an already-computed natal (D1) chart. Transit houses are counted two
+ * ways, both standard in practice: from the natal Moon sign (the primary
+ * Gochara reference) and from the natal Lagna. No new geolocation is
+ * needed - transit house placement is read against the birth chart's
+ * fixed houses, not a "chart cast for right now".
+ * @param {ReturnType<typeof computeBirthChart>} natalChart
+ * @param {Date} transitUtcDate - the moment to compute transits for
+ */
+export function computeTransitChart(natalChart, transitUtcDate) {
+  const jd = toJulianDay(transitUtcDate);
+  const ayanamsa = lahiriAyanamsa(jd);
+
+  const natalMoon = natalChart.planets.find((p) => p.planet === 'Moon');
+  const natalMoonRashi = natalMoon.rashi;
+  const natalMoonNakshatraIndex = NAKSHATRAS.indexOf(natalMoon.nakshatra);
+  const natalAscRashi = natalChart.ascendant.rashi;
+
+  const planets = PLANETS.map((planet) => {
+    let tropical;
+    if (planet === 'Rahu') {
+      tropical = meanLunarNodeLongitude(jd);
+    } else if (planet === 'Ketu') {
+      tropical = normalizeDegrees(meanLunarNodeLongitude(jd) + 180);
+    } else {
+      tropical = tropicalLongitude(planet, transitUtcDate);
+    }
+    const sidereal = normalizeDegrees(tropical - ayanamsa);
+    const rashi = rashiOf(sidereal);
+    const degreeInRashi = sidereal % 30;
+    const houseFromMoon = ((rashi - natalMoonRashi + 12) % 12) + 1;
+    const houseFromLagna = ((rashi - natalAscRashi + 12) % 12) + 1;
+    const { index: nakshatraIndex, pada } = nakshatraOf(sidereal);
+    const retrograde = planet === 'Rahu' || planet === 'Ketu' ? false : isRetrograde(planet, transitUtcDate);
+    const nakshatraFromMoon = ((nakshatraIndex - natalMoonNakshatraIndex + 27) % 27) + 1;
+    const effect = gocharaEffect(planet, houseFromMoon);
+    const tara = taraBala(natalMoonNakshatraIndex, nakshatraIndex);
+
+    return {
+      planet,
+      longitude: sidereal,
+      degreeInRashi,
+      rashi,
+      rashiName: RASHIS[rashi],
+      houseFromMoon,
+      houseFromLagna,
+      nakshatra: NAKSHATRAS[nakshatraIndex],
+      nakshatraFromMoon,
+      pada,
+      retrograde,
+      effect,
+      tara,
+      overall: overallReading(effect, tara.nature),
+      latta: LATTA_NAKSHATRA_COUNTS[planet]?.includes(nakshatraFromMoon) ?? false,
+      maleficTransit: specificMaleficTransit(planet, houseFromMoon),
+      areaOfInfluence: HOUSE_AREA_OF_INFLUENCE[houseFromMoon],
+      category: HOUSE_CATEGORY[houseFromMoon],
+    };
+  });
+
+  const transitMoon = planets.find((p) => p.planet === 'Moon');
+  const tara = transitMoon.tara;
+  const favorableCount = planets.filter((p) => p.effect === 'favorable').length;
+
+  return {
+    ayanamsa,
+    generatedAt: transitUtcDate,
+    natalMoonRashiName: RASHIS[natalMoonRashi],
+    natalMoonNakshatra: natalMoon.nakshatra,
+    planets,
+    tara,
+    favorableCount,
+    totalCount: planets.length,
+  };
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+const MAX_CATEGORIES_SHOWN = 2;
+
+const listFormatter =
+  typeof Intl !== 'undefined' && Intl.ListFormat ? new Intl.ListFormat('en', { style: 'long', type: 'conjunction' }) : null;
+
+function joinFriendly(words) {
+  if (words.length === 0) return '';
+  return listFormatter ? listFormatter.format(words) : words.join(', ');
+}
+
+/**
+ * Natural-language, category-specific advice, phrased for what that area
+ * of life actually means to act on - rather than a generic "make progress
+ * on X" template stapled onto every category (which reads oddly for
+ * something like Marriage). `planets` names which grahas are driving the
+ * read, so two windows pointing at the same category still read as
+ * distinct if a different graha is behind it.
+ */
+const CATEGORY_ADVICE = {
+  Health: {
+    lean: (planets) => `Energy favors health and fitness routines, with ${planets} in support`,
+    care: (planets) => `Go easy on your body - with ${planets} in play, don't overdo it physically`,
+  },
+  Savings: {
+    lean: (planets) => `A good stretch to build up savings, helped along by ${planets}`,
+    care: (planets) => `With ${planets} in play, avoid impulsive spending that eats into savings`,
+  },
+  'Effort & Communication': {
+    lean: (planets) => `Effort and clear communication pay off, with ${planets} in your corner`,
+    care: (planets) => `Conversations may take extra effort under ${planets} - choose words carefully`,
+  },
+  Happiness: {
+    lean: (planets) => `Home life and personal happiness get a lift from ${planets}`,
+    care: (planets) => `Domestic harmony needs a little extra patience while ${planets} is in the mix`,
+  },
+  'Education & Speculation': {
+    lean: (planets) => `A good window for learning or a calculated bet, backed by ${planets}`,
+    care: (planets) => `With ${planets} in play, steer clear of big speculative risks or hasty exam/study calls`,
+  },
+  'Health & Debts': {
+    lean: (planets) => `Good time to tackle health routines or chip away at debts, with ${planets} helping`,
+    care: (planets) => `Watch for health dips or financial obligations creeping up under ${planets}`,
+  },
+  Marriage: {
+    lean: (planets) => `A warm stretch for your marriage or closest relationship - make time for it while ${planets} supports it`,
+    care: (planets) => `Be patient with your spouse or partner - with ${planets} in play, it's not the moment to force a hard conversation`,
+  },
+  'Sudden Setbacks & Health Scares': {
+    lean: (planets) => `Even sudden turns tend to work in your favor now, with ${planets} softening the edges`,
+    care: (planets) => `Stay alert to sudden setbacks or health scares - with ${planets} in play, avoid unnecessary risks`,
+  },
+  'Fortune & Growth': {
+    lean: (planets) => `Fortune leans your way for bigger-picture plans, with ${planets} behind it`,
+    care: (planets) => `Bigger plans may hit friction under ${planets} - keep ambitions modest for now`,
+  },
+  Career: {
+    lean: (planets) => `Career visibility and progress are supported by ${planets}`,
+    care: (planets) => `Go easy at work - with ${planets} in play, sidestep office politics or big asks`,
+  },
+  Investment: {
+    lean: (planets) => `A good window to make investment or income moves, with ${planets} on your side`,
+    care: (planets) => `With ${planets} in play, hold off on big investment decisions for now`,
+  },
+  Expenditure: {
+    lean: (planets) => `A fine time to spend on things that matter to you, eased by ${planets}`,
+    care: (planets) => `Keep an eye on expenditure - ${planets} in play means it's easy to overspend`,
+  },
+};
+
+/**
+ * Net the favorable and challenging planet lists down to their top few
+ * life categories, one bucket per direction. A category with planets on
+ * both sides (e.g. the Moon favoring Marriage while the Sun sits
+ * unfavorably in the same house) is resolved by majority rather than
+ * printed as both "lean into" and "take care with" - which read as
+ * self-contradictory - and dropped entirely on an exact tie.
+ */
+function netCategoryAdvice(favorablePlanets, challengingPlanets, limit = MAX_CATEGORIES_SHOWN) {
+  const byCategory = (planets) => {
+    const map = new Map();
+    for (const p of planets) {
+      if (!map.has(p.category)) map.set(p.category, []);
+      map.get(p.category).push(p.planet);
+    }
+    return map;
+  };
+  const favMap = byCategory(favorablePlanets);
+  const careMap = byCategory(challengingPlanets);
+
+  const lean = [];
+  const care = [];
+  for (const category of new Set([...favMap.keys(), ...careMap.keys()])) {
+    const favList = favMap.get(category) ?? [];
+    const careList = careMap.get(category) ?? [];
+    if (favList.length > careList.length) lean.push({ category, planets: favList });
+    else if (careList.length > favList.length) care.push({ category, planets: careList });
+  }
+
+  const topN = (entries) =>
+    entries.sort((a, b) => b.planets.length - a.planets.length).slice(0, limit);
+
+  return { leanEntries: topN(lean), careEntries: topN(care) };
+}
+
+function capitalize(s) {
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+const TIER_HEADLINES = {
+  favorable: [
+    'Conditions stay broadly favorable and steady.',
+    'A comfortable stretch overall - momentum stays on your side.',
+    'Skies stay mostly clear around this time.',
+  ],
+  mixed: [
+    'A mixed stretch - some support, some friction.',
+    'A balancing act around this time - progress needs a bit more effort.',
+    'Give and take here; be selective about where you push.',
+  ],
+  demanding: [
+    'A demanding stretch - move carefully and avoid big new commitments.',
+    'A patch that asks for patience - keep plans flexible.',
+    "Proceed cautiously here - it's not the time to force things.",
+  ],
+};
+
+/**
+ * Render one direction's (lean-into or take-care) category entries into
+ * sentences, collapsing an entry into a short "still true" note instead of
+ * repeating its full sentence when the exact same category + graha
+ * combination already appeared in the previous period - the situation
+ * that produced two panels reading almost word-for-word the same.
+ */
+function renderCategoryEntries(entries, direction, previousState) {
+  return entries.map(({ category, planets }) => {
+    const planetsList = joinFriendly(planets);
+    const key = `${direction}:${category}`;
+    const continuing = previousState.get(key) === planetsList;
+    previousState.set(key, planetsList);
+    if (continuing) {
+      return direction === 'lean'
+        ? `${category} continues to work in your favor (still ${planetsList})`
+        : `${category} still needs the same care as before (${planetsList})`;
+    }
+    return CATEGORY_ADVICE[category]?.[direction](planetsList) ?? category;
+  });
+}
+
+/**
+ * Build a plain-language advice narrative for one checkpoint's transit
+ * snapshot: an overall headline based on the favorable/challenging
+ * balance, what to lean into, what to be careful with, and one explained
+ * sentence per named dosha/Latta in play - written for a reader with no
+ * prior astrology vocabulary. `variantIndex`, `previousWatchLabels`, and
+ * `previousCategoryState` let the same underlying situation (which often
+ * repeats from one period to the next, since most grahas don't change
+ * houses within a couple of weeks) get worded differently, or collapsed
+ * to a short "still true" note, instead of printing an identical
+ * paragraph over and over.
+ */
+function buildPeriodNarrative(
+  transit,
+  favorablePlanets,
+  challengingPlanets,
+  specialWatch,
+  variantIndex,
+  previousWatchLabels,
+  previousCategoryState,
+) {
+  const ratio = favorablePlanets.length / transit.totalCount;
+  const tier = ratio >= 0.6 ? 'favorable' : ratio >= 0.4 ? 'mixed' : 'demanding';
+  const headline = TIER_HEADLINES[tier][variantIndex % TIER_HEADLINES[tier].length];
+
+  const { leanEntries, careEntries } = netCategoryAdvice(favorablePlanets, challengingPlanets);
+  const leanInto = renderCategoryEntries(leanEntries, 'lean', previousCategoryState).map((s) => `${capitalize(s)}.`);
+  const takeCare = renderCategoryEntries(careEntries, 'care', previousCategoryState).map((s) => `${capitalize(s)}.`);
+
+  const watchouts = specialWatch.map((p) => {
+    const label = p.maleficTransit ?? 'Latta';
+    const continuing = previousWatchLabels.get(p.planet) === label;
+    return {
+      planet: p.planet,
+      label,
+      advice: continuing
+        ? `Still active from the earlier checkpoint above - see there for what ${label} means and why it matters.`
+        : MALEFIC_TRANSIT_EXPLANATIONS[label],
+    };
+  });
+
+  return { headline, leanInto, takeCare, watchouts };
+}
+
+const OUTLOOK_WINDOW_DAYS = 10;
+const OUTLOOK_WINDOW_COUNT = 2;
+
+/**
+ * Short-term Gochara outlook: a couple of computeTransitChart() snapshots,
+ * one per 10-day window (today through +9 days, then +10 through +19),
+ * each taken at the window's start. A multi-week outlook mostly repeats
+ * itself - the slow grahas don't move houses in that span - so keeping
+ * the window short (10 days) means the Moon, which changes sign and
+ * nakshatra every day or two, has actually moved by the time the second
+ * window is read, giving each panel a genuinely different picture rather
+ * than a reworded copy of the first.
+ * @param {ReturnType<typeof computeBirthChart>} natalChart
+ * @param {Date} startDate - "today", the first window's start
+ * @param {number} [windowCount] - how many 10-day windows to produce
+ */
+export function computeTransitOutlook(natalChart, startDate, windowCount = OUTLOOK_WINDOW_COUNT) {
+  const previousWatchLabels = new Map();
+  const previousCategoryState = new Map();
+  return Array.from({ length: windowCount }, (_, i) => {
+    const windowStart = new Date(startDate.getTime() + i * OUTLOOK_WINDOW_DAYS * DAY_MS);
+    const windowEnd = new Date(windowStart.getTime() + OUTLOOK_WINDOW_DAYS * DAY_MS - 1);
+    const transit = computeTransitChart(natalChart, windowStart);
+    const favorablePlanets = transit.planets.filter((p) => p.effect === 'favorable');
+    const challengingPlanets = transit.planets.filter((p) => p.effect === 'challenging');
+    const specialWatch = transit.planets.filter((p) => p.maleficTransit || p.latta);
+    const narrative = buildPeriodNarrative(
+      transit,
+      favorablePlanets,
+      challengingPlanets,
+      specialWatch,
+      i,
+      previousWatchLabels,
+      previousCategoryState,
+    );
+
+    previousWatchLabels.clear();
+    for (const p of specialWatch) previousWatchLabels.set(p.planet, p.maleficTransit ?? 'Latta');
+
+    return {
+      windowIndex: i,
+      startDate: windowStart,
+      endDate: windowEnd,
+      transit,
+      favorablePlanets,
+      challengingPlanets,
+      specialWatch,
+      narrative,
+    };
+  });
+}
+
+/**
  * Derive a divisional (varga) chart from an already-computed D1 chart.
  * Divisional charts are sign-based (no independent degree/nakshatra of
  * their own), so only rashi/house are meaningful; retrograde/combust state

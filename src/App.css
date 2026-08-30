@@ -86,6 +86,53 @@ input:focus {
   opacity: 0.75;
 }
 
+.saved-profiles {
+  max-width: 480px;
+  margin: 0 auto 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
+}
+
+.saved-profiles-row {
+  display: flex;
+  gap: 8px;
+}
+
+.saved-profiles-row select {
+  flex: 1;
+  font: inherit;
+  font-size: 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text-h);
+}
+
+.saved-profile-delete {
+  font: inherit;
+  font-size: 16px;
+  line-height: 1;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.saved-profile-delete:hover:not(:disabled) {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+.saved-profile-delete:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 .location-autocomplete {
   position: relative;
 }
@@ -193,6 +240,41 @@ button[type='submit']:disabled {
 .chart-style-toggle button.active {
   background: var(--accent);
   color: #fff;
+}
+
+.main-tabs {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  max-width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 4px;
+  margin: 4px 0 20px;
+  box-sizing: border-box;
+}
+
+.main-tabs button {
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 8px 18px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.main-tabs button.active {
+  background: var(--accent);
+  color: #fff;
+}
+
+.main-tabpanel {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
 }
 
 .varga-toggle {
@@ -492,6 +574,187 @@ button[type='submit']:disabled {
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
+}
+
+.transit-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.transit-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.transit-panel-header h3 {
+  margin: 0;
+}
+
+.transit-refresh {
+  font: inherit;
+  font-size: 13px;
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg);
+  color: var(--text-h);
+  cursor: pointer;
+}
+
+.transit-meta {
+  font-size: 13px;
+  color: var(--text);
+  margin: 4px 0 16px;
+}
+
+.transit-refreshed-badge {
+  color: var(--exalted);
+  font-weight: 600;
+}
+
+.transit-tabs {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  max-width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 4px;
+  margin: 0 0 16px;
+  box-sizing: border-box;
+}
+
+.transit-tabs button {
+  font: inherit;
+  font-size: 13px;
+  padding: 6px 14px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.transit-tabs button.active {
+  background: var(--accent);
+  color: #fff;
+}
+
+.transit-tabpanel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.transit-summary {
+  font-size: 14px;
+  color: var(--text-h);
+}
+
+.transit-effect-favorable {
+  color: var(--exalted);
+  font-weight: 600;
+}
+
+.transit-effect-challenging {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.transit-effect-mixed {
+  color: var(--debilitated);
+  font-weight: 600;
+}
+
+.transit-outlook-title {
+  font-size: 14px;
+  margin: 8px 0 0;
+}
+
+.transit-week-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.transit-week-card {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.transit-week-range {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-h);
+}
+
+.transit-week-headline {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.transit-week-advice-list {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 12px;
+  line-height: 1.5;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.transit-week-watchout {
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* Anchors the watchout block to the bottom of the card, so it lines up
+   across panels even when the advice above it runs to different lengths. */
+.transit-week-watchout:first-of-type {
+  margin-top: auto;
+}
+
+.transit-week-watchout-title {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--danger);
+}
+
+.transit-week-watchout-body {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-h);
+}
+
+.transit-tara-good {
+  color: var(--exalted);
+}
+
+.transit-tara-bad {
+  color: var(--danger);
+}
+
+.transit-nakshatra-note {
+  font-size: 12px;
+  color: var(--text);
+  opacity: 0.85;
+  max-width: 640px;
 }
 
 .app-footer {
