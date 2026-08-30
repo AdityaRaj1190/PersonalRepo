@@ -655,36 +655,6 @@ button[type='submit']:disabled {
   color: var(--text-h);
 }
 
-.transit-overview-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.transit-overview-list li {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: baseline;
-  padding: 8px 12px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  font-size: 13px;
-}
-
-.transit-overview-planet {
-  font-weight: 700;
-  color: var(--text-h);
-  min-width: 70px;
-}
-
-.transit-overview-detail {
-  color: var(--text);
-}
-
 .transit-effect-favorable {
   color: var(--exalted);
   font-weight: 600;
@@ -722,36 +692,39 @@ button[type='submit']:disabled {
   color: var(--text-h);
 }
 
-.transit-week-summary {
+.transit-week-headline {
   margin: 0;
-  font-size: 12px;
-  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-h);
 }
 
-.transit-week-section {
+.transit-week-advice {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.transit-week-watchout {
+  border-top: 1px solid var(--border);
+  padding-top: 8px;
+  margin-top: 2px;
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
 
-.transit-week-section-title {
+.transit-week-watchout-title {
   margin: 0;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  color: var(--danger);
 }
 
-.transit-week-section-body {
+.transit-week-watchout-body {
   margin: 0;
   font-size: 12px;
-  color: var(--text-h);
-}
-
-.transit-week-watch-list {
-  margin: 0;
-  padding-left: 16px;
-  font-size: 12px;
+  line-height: 1.5;
   color: var(--text-h);
 }
 

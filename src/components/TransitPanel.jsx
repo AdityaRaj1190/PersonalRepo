@@ -65,61 +65,29 @@ export default function TransitPanel({ natalChart }) {
 
       {tab === 'overview' && (
         <div className="transit-tabpanel">
-          <p className="transit-summary">
-            <strong>{transit.favorableCount}</strong> of <strong>{transit.totalCount}</strong> grahas are
-            transiting a favorable house from your natal Moon ({transit.natalMoonRashiName}).
-          </p>
-          <ul className="transit-overview-list">
-            {transit.planets.map((p) => (
-              <li key={p.planet} className={`transit-effect-${p.effect}`}>
-                <span className="transit-overview-planet">{p.planet}</span>
-                <span className="transit-overview-detail">
-                  in {p.rashiName} &middot; house {p.houseFromMoon} from Moon ({p.areaOfInfluence}) &middot;{' '}
-                  {effectLabel(p.effect)}
-                  {p.maleficTransit && <> &middot; {p.maleficTransit}</>}
-                  {p.latta && <> &middot; Latta</>}
-                </span>
-              </li>
-            ))}
-          </ul>
-
           <h4 className="transit-outlook-title">3-Week Outlook</h4>
           <div className="transit-week-grid">
             {weeklyOutlook.map((week) => (
               <div className="transit-week-card" key={week.weekIndex}>
                 <p className="transit-week-range">{formatWeekRange(week.startDate, week.endDate)}</p>
-                <p className="transit-week-summary">
-                  <strong>{week.favorablePlanets.length}</strong> of{' '}
-                  <strong>{week.transit.totalCount}</strong> grahas favorable &middot; Moon's Tara Bala:{' '}
-                  <span className={`transit-tara-${week.transit.tara.nature}`}>{week.transit.tara.name}</span>
-                </p>
+                <p className="transit-week-headline">{week.narrative.headline}</p>
 
-                {week.focusAreas.length > 0 && (
-                  <div className="transit-week-section">
-                    <p className="transit-week-section-title transit-effect-favorable">Lean into</p>
-                    <p className="transit-week-section-body">{week.focusAreas.join('; ')}</p>
-                  </div>
+                {week.narrative.leanInto && (
+                  <p className="transit-week-advice transit-effect-favorable">{week.narrative.leanInto}</p>
                 )}
 
-                {week.cautionAreas.length > 0 && (
-                  <div className="transit-week-section">
-                    <p className="transit-week-section-title transit-effect-challenging">Take care with</p>
-                    <p className="transit-week-section-body">{week.cautionAreas.join('; ')}</p>
-                  </div>
+                {week.narrative.takeCare && (
+                  <p className="transit-week-advice transit-effect-challenging">{week.narrative.takeCare}</p>
                 )}
 
-                {week.specialWatch.length > 0 && (
-                  <div className="transit-week-section">
-                    <p className="transit-week-section-title transit-effect-challenging">Specifically watch</p>
-                    <ul className="transit-week-watch-list">
-                      {week.specialWatch.map((p) => (
-                        <li key={p.planet}>
-                          {p.planet}: {p.maleficTransit ?? 'Latta'}
-                        </li>
-                      ))}
-                    </ul>
+                {week.narrative.watchouts.map((w) => (
+                  <div className="transit-week-watchout" key={w.planet}>
+                    <p className="transit-week-watchout-title">
+                      {w.planet}'s {w.label}
+                    </p>
+                    <p className="transit-week-watchout-body">{w.advice}</p>
                   </div>
-                )}
+                ))}
               </div>
             ))}
           </div>
@@ -128,6 +96,43 @@ export default function TransitPanel({ natalChart }) {
             while the Moon (and to a lesser extent Mercury/Venus/Mars) can shift sign or nakshatra within
             a week; check the Planet Positions tab on any given day for the exact picture.
           </p>
+
+          <h4 className="transit-outlook-title">Grahas Right Now</h4>
+          <p className="transit-summary">
+            <strong>{transit.favorableCount}</strong> of <strong>{transit.totalCount}</strong> grahas are
+            transiting a favorable house from your natal Moon ({transit.natalMoonRashiName}).
+          </p>
+          <div className="planet-table-wrapper">
+            <table className="planet-table">
+              <thead>
+                <tr>
+                  <th>Graha</th>
+                  <th>Sign</th>
+                  <th>House (from Moon)</th>
+                  <th>Area of Influence</th>
+                  <th>Effect</th>
+                  <th>Watch For</th>
+                </tr>
+              </thead>
+              <tbody>
+                {transit.planets.map((p) => (
+                  <tr key={p.planet}>
+                    <td>
+                      {p.planet}
+                      {p.retrograde && <span className="legend-retrograde"> (R)</span>}
+                    </td>
+                    <td>{p.rashiName}</td>
+                    <td>{p.houseFromMoon}</td>
+                    <td>{p.areaOfInfluence}</td>
+                    <td className={`transit-effect-${p.effect}`}>{effectLabel(p.effect)}</td>
+                    <td className={p.maleficTransit || p.latta ? 'transit-effect-challenging' : ''}>
+                      {p.maleficTransit ?? (p.latta ? 'Latta' : '–')}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 

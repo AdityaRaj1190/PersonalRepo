@@ -406,6 +406,31 @@ function specificMaleficTransit(planet, houseFromMoon) {
 }
 
 /**
+ * Plain-language, one-line explanations for the named transits/Latta -
+ * what the classical term means and what it practically suggests being
+ * careful about, for a reader with no prior astrology vocabulary.
+ */
+export const MALEFIC_TRANSIT_EXPLANATIONS = {
+  'Sade Sati':
+    "Saturn's long transit through the signs around your Moon. A stretch of extra responsibility and " +
+    'slow, grinding change - not misfortune by itself, but a good time to be disciplined, patient, and ' +
+    'careful with health and finances rather than starting big new ventures.',
+  'Ashtama Shani':
+    'Saturn transiting the 8th house from your Moon, classically the most disruptive of its transits. ' +
+    'Watch for sudden setbacks, health scares, or upheaval in routines - avoid risk-taking and lean on ' +
+    'caution until it passes.',
+  'Kantaka Shani':
+    "Saturn in one of the 'thorn' houses from your Moon - a milder, background-level stress on daily " +
+    'routines, health, or relationships. Worth noting, not worth worrying over.',
+  'Kuja Gochara Dosha':
+    'Mars transiting a house from your Moon classically linked to accidents, conflict, or impulsive ' +
+    'decisions. Drive carefully, watch your temper, and avoid rushed financial calls this week.',
+  Latta:
+    "A classical 'kick' transit - a short, sharp burst of friction or minor obstacles rather than a " +
+    'sustained affliction. Usually passes within days; nothing to plan around, just be a little more careful.',
+};
+
+/**
  * Broad classical significations (karakatva) of each house-from-Moon, used
  * to describe which area of life a transiting graha's current placement
  * is read as touching.
@@ -500,6 +525,56 @@ export function computeTransitChart(natalChart, transitUtcDate) {
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
+/** Turn a set of house significations ("Wealth, family, speech", ...) into a deduped, lowercased word list. */
+function flattenAreas(areaStrings) {
+  const words = areaStrings.flatMap((s) => s.split(',').map((w) => w.trim().toLowerCase()));
+  return [...new Set(words)];
+}
+
+const listFormatter =
+  typeof Intl !== 'undefined' && Intl.ListFormat ? new Intl.ListFormat('en', { style: 'long', type: 'conjunction' }) : null;
+
+function joinFriendly(words) {
+  if (words.length === 0) return '';
+  return listFormatter ? listFormatter.format(words) : words.join(', ');
+}
+
+/**
+ * Build a plain-language advice narrative for one week's transit snapshot:
+ * an overall headline based on the favorable/challenging balance, what to
+ * lean into, what to be careful with, and one explained sentence per
+ * named dosha/Latta in play - written for a reader with no prior
+ * astrology vocabulary.
+ */
+function buildWeekNarrative(transit, favorablePlanets, challengingPlanets, specialWatch) {
+  const ratio = favorablePlanets.length / transit.totalCount;
+  const headline =
+    ratio >= 0.6
+      ? 'A broadly favorable, steady week.'
+      : ratio >= 0.4
+        ? 'A mixed week - some support, some friction.'
+        : 'A demanding week - move carefully and avoid big new commitments.';
+
+  const leanInto = favorablePlanets.length
+    ? `Good week to make progress on ${joinFriendly(flattenAreas(favorablePlanets.map((p) => p.areaOfInfluence)))}.`
+    : '';
+
+  const takeCare = challengingPlanets.length
+    ? `Go easy on ${joinFriendly(flattenAreas(challengingPlanets.map((p) => p.areaOfInfluence)))} - avoid rushing decisions here.`
+    : '';
+
+  const watchouts = specialWatch.map((p) => {
+    const label = p.maleficTransit ?? 'Latta';
+    return {
+      planet: p.planet,
+      label,
+      advice: MALEFIC_TRANSIT_EXPLANATIONS[label],
+    };
+  });
+
+  return { headline, leanInto, takeCare, watchouts };
+}
+
 /**
  * Week-by-week Gochara outlook: one computeTransitChart() snapshot taken at
  * the start of each week, read against the natal chart. Snapshotting
@@ -520,8 +595,7 @@ export function computeTransitForecast(natalChart, startDate, weeks = 3) {
     const favorablePlanets = transit.planets.filter((p) => p.effect === 'favorable');
     const challengingPlanets = transit.planets.filter((p) => p.effect === 'challenging');
     const specialWatch = transit.planets.filter((p) => p.maleficTransit || p.latta);
-    const focusAreas = [...new Set(favorablePlanets.map((p) => p.areaOfInfluence))];
-    const cautionAreas = [...new Set(challengingPlanets.map((p) => p.areaOfInfluence))];
+    const narrative = buildWeekNarrative(transit, favorablePlanets, challengingPlanets, specialWatch);
 
     return {
       weekIndex: i,
@@ -531,8 +605,7 @@ export function computeTransitForecast(natalChart, startDate, weeks = 3) {
       favorablePlanets,
       challengingPlanets,
       specialWatch,
-      focusAreas,
-      cautionAreas,
+      narrative,
     };
   });
 }
