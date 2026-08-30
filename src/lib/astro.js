@@ -659,26 +659,14 @@ function netCategoryAdvice(favorablePlanets, challengingPlanets, limit = MAX_CAT
   for (const category of new Set([...favMap.keys(), ...careMap.keys()])) {
     const favList = favMap.get(category) ?? [];
     const careList = careMap.get(category) ?? [];
-    if (favList.length > careList.length) lean.push([category, favList]);
-    else if (careList.length > favList.length) care.push([category, careList]);
+    if (favList.length > careList.length) lean.push({ category, planets: favList });
+    else if (careList.length > favList.length) care.push({ category, planets: careList });
   }
 
-  const toSentences = (entries) =>
-    entries
-      .sort((a, b) => b[1].length - a[1].length)
-      .slice(0, limit)
-      .map(([category, planets]) => {
-        const advice = CATEGORY_ADVICE[category];
-        return advice ? advice.lean(joinFriendly(planets)) : category;
-      });
+  const topN = (entries) =>
+    entries.sort((a, b) => b.planets.length - a.planets.length).slice(0, limit);
 
-  return {
-    leanSentences: toSentences(lean),
-    careSentences: care
-      .sort((a, b) => b[1].length - a[1].length)
-      .slice(0, limit)
-      .map(([category, planets]) => CATEGORY_ADVICE[category]?.care(joinFriendly(planets)) ?? category),
-  };
+  return { leanEntries: topN(lean), careEntries: topN(care) };
 }
 
 function capitalize(s) {
@@ -704,22 +692,55 @@ const TIER_HEADLINES = {
 };
 
 /**
+ * Render one direction's (lean-into or take-care) category entries into
+ * sentences, collapsing an entry into a short "still true" note instead of
+ * repeating its full sentence when the exact same category + graha
+ * combination already appeared in the previous period - the situation
+ * that produced two panels reading almost word-for-word the same.
+ */
+function renderCategoryEntries(entries, direction, previousState) {
+  return entries.map(({ category, planets }) => {
+    const planetsList = joinFriendly(planets);
+    const key = `${direction}:${category}`;
+    const continuing = previousState.get(key) === planetsList;
+    previousState.set(key, planetsList);
+    if (continuing) {
+      return direction === 'lean'
+        ? `${category} continues to work in your favor (still ${planetsList})`
+        : `${category} still needs the same care as before (${planetsList})`;
+    }
+    return CATEGORY_ADVICE[category]?.[direction](planetsList) ?? category;
+  });
+}
+
+/**
  * Build a plain-language advice narrative for one checkpoint's transit
  * snapshot: an overall headline based on the favorable/challenging
  * balance, what to lean into, what to be careful with, and one explained
  * sentence per named dosha/Latta in play - written for a reader with no
- * prior astrology vocabulary. `variantIndex` and `previousWatchLabels` let
- * the same underlying situation (which often repeats from one checkpoint
- * to the next, since most grahas don't change houses within a couple of
- * weeks) get worded differently instead of printing an identical
+ * prior astrology vocabulary. `variantIndex`, `previousWatchLabels`, and
+ * `previousCategoryState` let the same underlying situation (which often
+ * repeats from one period to the next, since most grahas don't change
+ * houses within a couple of weeks) get worded differently, or collapsed
+ * to a short "still true" note, instead of printing an identical
  * paragraph over and over.
  */
-function buildPeriodNarrative(transit, favorablePlanets, challengingPlanets, specialWatch, variantIndex, previousWatchLabels) {
+function buildPeriodNarrative(
+  transit,
+  favorablePlanets,
+  challengingPlanets,
+  specialWatch,
+  variantIndex,
+  previousWatchLabels,
+  previousCategoryState,
+) {
   const ratio = favorablePlanets.length / transit.totalCount;
   const tier = ratio >= 0.6 ? 'favorable' : ratio >= 0.4 ? 'mixed' : 'demanding';
   const headline = TIER_HEADLINES[tier][variantIndex % TIER_HEADLINES[tier].length];
 
-  const { leanSentences, careSentences } = netCategoryAdvice(favorablePlanets, challengingPlanets);
+  const { leanEntries, careEntries } = netCategoryAdvice(favorablePlanets, challengingPlanets);
+  const leanSentences = renderCategoryEntries(leanEntries, 'lean', previousCategoryState);
+  const careSentences = renderCategoryEntries(careEntries, 'care', previousCategoryState);
   const leanInto = leanSentences.length ? `${capitalize(leanSentences.join('. '))}.` : '';
   const takeCare = careSentences.length ? `${capitalize(careSentences.join('. '))}.` : '';
 
@@ -756,6 +777,7 @@ const OUTLOOK_WINDOW_COUNT = 2;
  */
 export function computeTransitOutlook(natalChart, startDate, windowCount = OUTLOOK_WINDOW_COUNT) {
   const previousWatchLabels = new Map();
+  const previousCategoryState = new Map();
   return Array.from({ length: windowCount }, (_, i) => {
     const windowStart = new Date(startDate.getTime() + i * OUTLOOK_WINDOW_DAYS * DAY_MS);
     const windowEnd = new Date(windowStart.getTime() + OUTLOOK_WINDOW_DAYS * DAY_MS - 1);
@@ -763,7 +785,15 @@ export function computeTransitOutlook(natalChart, startDate, windowCount = OUTLO
     const favorablePlanets = transit.planets.filter((p) => p.effect === 'favorable');
     const challengingPlanets = transit.planets.filter((p) => p.effect === 'challenging');
     const specialWatch = transit.planets.filter((p) => p.maleficTransit || p.latta);
-    const narrative = buildPeriodNarrative(transit, favorablePlanets, challengingPlanets, specialWatch, i, previousWatchLabels);
+    const narrative = buildPeriodNarrative(
+      transit,
+      favorablePlanets,
+      challengingPlanets,
+      specialWatch,
+      i,
+      previousWatchLabels,
+      previousCategoryState,
+    );
 
     previousWatchLabels.clear();
     for (const p of specialWatch) previousWatchLabels.set(p.planet, p.maleficTransit ?? 'Latta');
