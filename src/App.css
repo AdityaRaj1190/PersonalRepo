@@ -722,6 +722,12 @@ button[type='submit']:disabled {
   gap: 4px;
 }
 
+/* Anchors the watchout block to the bottom of the card, so it lines up
+   across panels even when the advice above it runs to different lengths. */
+.transit-week-watchout:first-of-type {
+  margin-top: auto;
+}
+
 .transit-week-watchout-title {
   margin: 0;
   font-size: 12px;
