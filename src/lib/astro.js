@@ -668,24 +668,28 @@ function buildPeriodNarrative(transit, favorablePlanets, challengingPlanets, spe
   return { headline, leanInto, takeCare, watchouts };
 }
 
-const DEFAULT_OUTLOOK_DAY_OFFSETS = [2, 4, 6, 8, 10];
+const OUTLOOK_WINDOW_DAYS = 10;
+const OUTLOOK_WINDOW_COUNT = 2;
 
 /**
- * Short-term Gochara outlook: a handful of computeTransitChart() snapshots
- * over the next ~10 days, spaced a couple of days apart. A multi-week
- * outlook mostly repeats itself - the slow grahas don't move houses in
- * that span - so this leans on the Moon instead, which changes sign and
- * nakshatra every day or two and is the main source of real day-to-day
- * variation in a Gochara reading.
+ * Short-term Gochara outlook: a couple of computeTransitChart() snapshots,
+ * one per 10-day window (today through +9 days, then +10 through +19),
+ * each taken at the window's start. A multi-week outlook mostly repeats
+ * itself - the slow grahas don't move houses in that span - so keeping
+ * the window short (10 days) means the Moon, which changes sign and
+ * nakshatra every day or two, has actually moved by the time the second
+ * window is read, giving each panel a genuinely different picture rather
+ * than a reworded copy of the first.
  * @param {ReturnType<typeof computeBirthChart>} natalChart
- * @param {Date} startDate - "today"
- * @param {number[]} [dayOffsets] - how many days out each checkpoint sits
+ * @param {Date} startDate - "today", the first window's start
+ * @param {number} [windowCount] - how many 10-day windows to produce
  */
-export function computeTransitOutlook(natalChart, startDate, dayOffsets = DEFAULT_OUTLOOK_DAY_OFFSETS) {
+export function computeTransitOutlook(natalChart, startDate, windowCount = OUTLOOK_WINDOW_COUNT) {
   const previousWatchLabels = new Map();
-  return dayOffsets.map((offsetDays, i) => {
-    const date = new Date(startDate.getTime() + offsetDays * DAY_MS);
-    const transit = computeTransitChart(natalChart, date);
+  return Array.from({ length: windowCount }, (_, i) => {
+    const windowStart = new Date(startDate.getTime() + i * OUTLOOK_WINDOW_DAYS * DAY_MS);
+    const windowEnd = new Date(windowStart.getTime() + OUTLOOK_WINDOW_DAYS * DAY_MS - 1);
+    const transit = computeTransitChart(natalChart, windowStart);
     const favorablePlanets = transit.planets.filter((p) => p.effect === 'favorable');
     const challengingPlanets = transit.planets.filter((p) => p.effect === 'challenging');
     const specialWatch = transit.planets.filter((p) => p.maleficTransit || p.latta);
@@ -695,8 +699,9 @@ export function computeTransitOutlook(natalChart, startDate, dayOffsets = DEFAUL
     for (const p of specialWatch) previousWatchLabels.set(p.planet, p.maleficTransit ?? 'Latta');
 
     return {
-      offsetDays,
-      date,
+      windowIndex: i,
+      startDate: windowStart,
+      endDate: windowEnd,
       transit,
       favorablePlanets,
       challengingPlanets,

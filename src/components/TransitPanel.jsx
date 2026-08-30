@@ -23,8 +23,9 @@ const OVERALL_CLASSES = {
   'mixed signals': 'transit-effect-mixed',
 };
 
-function formatCheckpointDate(date) {
-  return date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+function formatWindowRange(start, end) {
+  const opts = { month: 'short', day: 'numeric' };
+  return `${start.toLocaleDateString(undefined, opts)} – ${end.toLocaleDateString(undefined, opts)}`;
 }
 
 export default function TransitPanel({ natalChart }) {
@@ -75,24 +76,22 @@ export default function TransitPanel({ natalChart }) {
 
       {tab === 'overview' && (
         <div className="transit-tabpanel">
-          <h4 className="transit-outlook-title">Next 10 Days</h4>
+          <h4 className="transit-outlook-title">Next 20 Days</h4>
           <div className="transit-week-grid">
-            {outlook.map((checkpoint) => (
-              <div className="transit-week-card" key={checkpoint.offsetDays}>
-                <p className="transit-week-range">
-                  Day {checkpoint.offsetDays} &middot; {formatCheckpointDate(checkpoint.date)}
-                </p>
-                <p className="transit-week-headline">{checkpoint.narrative.headline}</p>
+            {outlook.map((window) => (
+              <div className="transit-week-card" key={window.windowIndex}>
+                <p className="transit-week-range">{formatWindowRange(window.startDate, window.endDate)}</p>
+                <p className="transit-week-headline">{window.narrative.headline}</p>
 
-                {checkpoint.narrative.leanInto && (
-                  <p className="transit-week-advice transit-effect-favorable">{checkpoint.narrative.leanInto}</p>
+                {window.narrative.leanInto && (
+                  <p className="transit-week-advice transit-effect-favorable">{window.narrative.leanInto}</p>
                 )}
 
-                {checkpoint.narrative.takeCare && (
-                  <p className="transit-week-advice transit-effect-challenging">{checkpoint.narrative.takeCare}</p>
+                {window.narrative.takeCare && (
+                  <p className="transit-week-advice transit-effect-challenging">{window.narrative.takeCare}</p>
                 )}
 
-                {checkpoint.narrative.watchouts.map((w) => (
+                {window.narrative.watchouts.map((w) => (
                   <div className="transit-week-watchout" key={w.planet}>
                     <p className="transit-week-watchout-title">
                       {w.planet}'s {w.label}
@@ -104,9 +103,10 @@ export default function TransitPanel({ natalChart }) {
             ))}
           </div>
           <p className="transit-nakshatra-note">
-            Each card is a snapshot for that single day - the Moon changes sign and nakshatra every day
-            or two, so it drives most of the change you'll see here; the slower grahas barely move across
-            10 days. Check the Planet Positions tab for the exact picture on any given day.
+            Each panel is a snapshot taken at its start - the slower grahas hold their house across the
+            whole 10-day window, while the Moon (and to a lesser extent Mercury/Venus/Mars) can shift
+            sign or nakshatra within it; check the Planet Positions tab on any given day for the exact
+            picture.
           </p>
 
           <h4 className="transit-outlook-title">Grahas Right Now</h4>
