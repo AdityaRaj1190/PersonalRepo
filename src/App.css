@@ -690,6 +690,66 @@ button[type='submit']:disabled {
   font-weight: 600;
 }
 
+.transit-outlook-title {
+  font-size: 14px;
+  margin: 8px 0 0;
+}
+
+.transit-week-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.transit-week-card {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.transit-week-range {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-h);
+}
+
+.transit-week-summary {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text);
+}
+
+.transit-week-section {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.transit-week-section-title {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.transit-week-section-body {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-h);
+}
+
+.transit-week-watch-list {
+  margin: 0;
+  padding-left: 16px;
+  font-size: 12px;
+  color: var(--text-h);
+}
+
 .transit-nakshatra-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));

@@ -498,6 +498,45 @@ export function computeTransitChart(natalChart, transitUtcDate) {
   };
 }
 
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+
+/**
+ * Week-by-week Gochara outlook: one computeTransitChart() snapshot taken at
+ * the start of each week, read against the natal chart. Snapshotting
+ * (rather than tracking every sign/nakshatra change within the week) is a
+ * deliberate simplification - the slow grahas (Jupiter onward, plus
+ * Rahu/Ketu) don't move houses within a 3-week span anyway, and the
+ * fast ones (Sun, Moon, Mercury, Venus, Mars) are summarized by where
+ * they stand as the week begins.
+ * @param {ReturnType<typeof computeBirthChart>} natalChart
+ * @param {Date} startDate - first day of week 1
+ * @param {number} [weeks] - how many weekly snapshots to produce
+ */
+export function computeTransitForecast(natalChart, startDate, weeks = 3) {
+  return Array.from({ length: weeks }, (_, i) => {
+    const weekStart = new Date(startDate.getTime() + i * WEEK_MS);
+    const weekEnd = new Date(weekStart.getTime() + WEEK_MS - 1);
+    const transit = computeTransitChart(natalChart, weekStart);
+    const favorablePlanets = transit.planets.filter((p) => p.effect === 'favorable');
+    const challengingPlanets = transit.planets.filter((p) => p.effect === 'challenging');
+    const specialWatch = transit.planets.filter((p) => p.maleficTransit || p.latta);
+    const focusAreas = [...new Set(favorablePlanets.map((p) => p.areaOfInfluence))];
+    const cautionAreas = [...new Set(challengingPlanets.map((p) => p.areaOfInfluence))];
+
+    return {
+      weekIndex: i,
+      startDate: weekStart,
+      endDate: weekEnd,
+      transit,
+      favorablePlanets,
+      challengingPlanets,
+      specialWatch,
+      focusAreas,
+      cautionAreas,
+    };
+  });
+}
+
 /**
  * Derive a divisional (varga) chart from an already-computed D1 chart.
  * Divisional charts are sign-based (no independent degree/nakshatra of

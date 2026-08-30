@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { computeTransitChart } from '../lib/astro';
+import { computeTransitChart, computeTransitForecast } from '../lib/astro';
 import { formatDegree } from '../lib/format';
 
 const TABS = [
@@ -12,11 +12,17 @@ function effectLabel(effect) {
   return effect === 'favorable' ? 'Favorable' : 'Challenging';
 }
 
+function formatWeekRange(start, end) {
+  const opts = { month: 'short', day: 'numeric' };
+  return `${start.toLocaleDateString(undefined, opts)} – ${end.toLocaleDateString(undefined, opts)}`;
+}
+
 export default function TransitPanel({ natalChart }) {
   const [tab, setTab] = useState('overview');
   const [now, setNow] = useState(() => new Date());
 
   const transit = useMemo(() => computeTransitChart(natalChart, now), [natalChart, now]);
+  const weeklyOutlook = useMemo(() => computeTransitForecast(natalChart, now, 3), [natalChart, now]);
 
   return (
     <div className="transit-panel">
@@ -64,6 +70,52 @@ export default function TransitPanel({ natalChart }) {
               </li>
             ))}
           </ul>
+
+          <h4 className="transit-outlook-title">3-Week Outlook</h4>
+          <div className="transit-week-grid">
+            {weeklyOutlook.map((week) => (
+              <div className="transit-week-card" key={week.weekIndex}>
+                <p className="transit-week-range">{formatWeekRange(week.startDate, week.endDate)}</p>
+                <p className="transit-week-summary">
+                  <strong>{week.favorablePlanets.length}</strong> of{' '}
+                  <strong>{week.transit.totalCount}</strong> grahas favorable &middot; Moon's Tara Bala:{' '}
+                  <span className={`transit-tara-${week.transit.tara.nature}`}>{week.transit.tara.name}</span>
+                </p>
+
+                {week.focusAreas.length > 0 && (
+                  <div className="transit-week-section">
+                    <p className="transit-week-section-title transit-effect-favorable">Lean into</p>
+                    <p className="transit-week-section-body">{week.focusAreas.join('; ')}</p>
+                  </div>
+                )}
+
+                {week.cautionAreas.length > 0 && (
+                  <div className="transit-week-section">
+                    <p className="transit-week-section-title transit-effect-challenging">Take care with</p>
+                    <p className="transit-week-section-body">{week.cautionAreas.join('; ')}</p>
+                  </div>
+                )}
+
+                {week.specialWatch.length > 0 && (
+                  <div className="transit-week-section">
+                    <p className="transit-week-section-title transit-effect-challenging">Specifically watch</p>
+                    <ul className="transit-week-watch-list">
+                      {week.specialWatch.map((p) => (
+                        <li key={p.planet}>
+                          {p.planet}: {p.maleficTransit ?? 'Latta'}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+          <p className="transit-nakshatra-note">
+            Each week is a snapshot taken at its start - the slower grahas hold their house all 3 weeks,
+            while the Moon (and to a lesser extent Mercury/Venus/Mars) can shift sign or nakshatra within
+            a week; check the Planet Positions tab on any given day for the exact picture.
+          </p>
         </div>
       )}
 
