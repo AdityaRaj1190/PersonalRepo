@@ -17,6 +17,7 @@ export default function BirthChartForm({ onSubmit, isSubmitting }) {
   const [form, setForm] = useState(initialState);
   const [error, setError] = useState('');
   const [saved, setSaved] = useState(() => listSavedProfiles());
+  const [selectedId, setSelectedId] = useState('');
 
   function handleSubmit(e) {
     e.preventDefault();
@@ -40,13 +41,18 @@ export default function BirthChartForm({ onSubmit, isSubmitting }) {
     });
   }
 
-  function handleLoad(p) {
+  function handleLoad(id) {
+    const p = saved.find((s) => s.id === id);
+    setSelectedId(id);
+    if (!p) return;
     setForm({ name: p.name, location: p.location, dob: p.dob, tob: p.tob });
     setError('');
   }
 
-  function handleDelete(id) {
-    deleteSavedProfile(id);
+  function handleDelete() {
+    if (!selectedId) return;
+    deleteSavedProfile(selectedId);
+    setSelectedId('');
     setSaved(listSavedProfiles());
   }
 
@@ -54,24 +60,32 @@ export default function BirthChartForm({ onSubmit, isSubmitting }) {
     <>
       {saved.length > 0 && (
         <div className="saved-profiles">
-          <p className="saved-profiles-title">Saved</p>
-          <ul>
-            {saved.map((p) => (
-              <li key={p.id}>
-                <button type="button" className="saved-profile-load" onClick={() => handleLoad(p)}>
+          <label htmlFor="saved-profiles-select">Saved</label>
+          <div className="saved-profiles-row">
+            <select
+              id="saved-profiles-select"
+              value={selectedId}
+              onChange={(e) => handleLoad(e.target.value)}
+            >
+              <option value="" disabled>
+                Load a saved profile...
+              </option>
+              {saved.map((p) => (
+                <option key={p.id} value={p.id}>
                   {formatSavedLabel(p)}
-                </button>
-                <button
-                  type="button"
-                  className="saved-profile-delete"
-                  aria-label={`Delete ${p.name}`}
-                  onClick={() => handleDelete(p.id)}
-                >
-                  &times;
-                </button>
-              </li>
-            ))}
-          </ul>
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              className="saved-profile-delete"
+              disabled={!selectedId}
+              aria-label="Delete selected saved profile"
+              onClick={handleDelete}
+            >
+              &times;
+            </button>
+          </div>
         </div>
       )}
 
