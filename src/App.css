@@ -716,11 +716,10 @@ button[type='submit']:disabled {
 
 .transit-week-watchout {
   border-top: 1px solid var(--border);
-  padding-top: 8px;
-  margin-top: 2px;
+  padding-top: 10px;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
 }
 
 .transit-week-watchout-title {
