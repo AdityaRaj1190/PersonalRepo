@@ -467,6 +467,27 @@ const HOUSE_AREA_OF_INFLUENCE = {
 };
 
 /**
+ * A single, everyday life-category label for each house-from-Moon - the
+ * same significations as HOUSE_AREA_OF_INFLUENCE, but compressed to one
+ * short tag so a weekly outlook can name 2-3 concrete things to focus on
+ * instead of a long list of classical nouns.
+ */
+const HOUSE_CATEGORY = {
+  1: 'Health',
+  2: 'Savings',
+  3: 'Effort & Communication',
+  4: 'Happiness',
+  5: 'Education & Speculation',
+  6: 'Health & Debts',
+  7: 'Marriage',
+  8: 'Unexpected Change',
+  9: 'Fortune & Growth',
+  10: 'Career',
+  11: 'Investment',
+  12: 'Expenditure',
+};
+
+/**
  * Compute the current (Gochara) transit positions of every graha against
  * an already-computed natal (D1) chart. Transit houses are counted two
  * ways, both standard in practice: from the natal Moon sign (the primary
@@ -523,6 +544,7 @@ export function computeTransitChart(natalChart, transitUtcDate) {
       latta: LATTA_NAKSHATRA_COUNTS[planet]?.includes(nakshatraFromMoon) ?? false,
       maleficTransit: specificMaleficTransit(planet, houseFromMoon),
       areaOfInfluence: HOUSE_AREA_OF_INFLUENCE[houseFromMoon],
+      category: HOUSE_CATEGORY[houseFromMoon],
     };
   });
 
@@ -543,12 +565,7 @@ export function computeTransitChart(natalChart, transitUtcDate) {
 }
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
-
-/** Turn a set of house significations ("Wealth, family, speech", ...) into a deduped, lowercased word list. */
-function flattenAreas(areaStrings) {
-  const words = areaStrings.flatMap((s) => s.split(',').map((w) => w.trim().toLowerCase()));
-  return [...new Set(words)];
-}
+const MAX_CATEGORIES_SHOWN = 3;
 
 const listFormatter =
   typeof Intl !== 'undefined' && Intl.ListFormat ? new Intl.ListFormat('en', { style: 'long', type: 'conjunction' }) : null;
@@ -559,35 +576,91 @@ function joinFriendly(words) {
 }
 
 /**
+ * Reduce a list of planets down to their top few distinct life categories,
+ * most-touched first (how many transiting grahas point at that category),
+ * ties broken by house order. Capping at MAX_CATEGORIES_SHOWN keeps the
+ * weekly advice to a short, actionable handful of things rather than
+ * naming every house every planet happens to be sitting in.
+ */
+function topCategories(planets, limit = MAX_CATEGORIES_SHOWN) {
+  const counts = new Map();
+  for (const p of planets) {
+    counts.set(p.category, (counts.get(p.category) ?? 0) + 1);
+  }
+  return [...counts.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, limit)
+    .map(([category]) => category.toLowerCase());
+}
+
+function capitalize(s) {
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+const TIER_HEADLINES = {
+  favorable: [
+    'A broadly favorable, steady week.',
+    'A comfortable stretch overall - momentum stays on your side.',
+    'Skies stay mostly clear this week.',
+  ],
+  mixed: [
+    'A mixed week - some support, some friction.',
+    'A balancing act this week - progress needs a bit more effort.',
+    'Give and take this week; be selective about where you push.',
+  ],
+  demanding: [
+    'A demanding week - move carefully and avoid big new commitments.',
+    'A week that asks for patience - keep plans flexible.',
+    "Proceed cautiously this week - it's not the time to force things.",
+  ],
+};
+
+const LEAN_INTO_TEMPLATES = [
+  (list) => `Good week to make progress on ${list}.`,
+  (list) => `${capitalize(list)} are where the energy favors you right now.`,
+  (list) => `Worth prioritizing ${list} while the support lasts.`,
+];
+
+const TAKE_CARE_TEMPLATES = [
+  (list) => `Go easy on ${list} - avoid rushing decisions here.`,
+  (list) => `Keep expectations modest around ${list} this week.`,
+  (list) => `${capitalize(list)} need extra patience right now - don't force outcomes.`,
+];
+
+/**
  * Build a plain-language advice narrative for one week's transit snapshot:
  * an overall headline based on the favorable/challenging balance, what to
  * lean into, what to be careful with, and one explained sentence per
  * named dosha/Latta in play - written for a reader with no prior
- * astrology vocabulary.
+ * astrology vocabulary. `weekIndex` and `previousWatchLabels` let the same
+ * underlying situation (which often repeats week to week, since most
+ * grahas don't change houses within a month) get worded differently
+ * instead of printing an identical paragraph three times running.
  */
-function buildWeekNarrative(transit, favorablePlanets, challengingPlanets, specialWatch) {
+function buildWeekNarrative(transit, favorablePlanets, challengingPlanets, specialWatch, weekIndex, previousWatchLabels) {
   const ratio = favorablePlanets.length / transit.totalCount;
-  const headline =
-    ratio >= 0.6
-      ? 'A broadly favorable, steady week.'
-      : ratio >= 0.4
-        ? 'A mixed week - some support, some friction.'
-        : 'A demanding week - move carefully and avoid big new commitments.';
+  const tier = ratio >= 0.6 ? 'favorable' : ratio >= 0.4 ? 'mixed' : 'demanding';
+  const headline = TIER_HEADLINES[tier][weekIndex % TIER_HEADLINES[tier].length];
 
-  const leanInto = favorablePlanets.length
-    ? `Good week to make progress on ${joinFriendly(flattenAreas(favorablePlanets.map((p) => p.areaOfInfluence)))}.`
+  const leanIntoList = joinFriendly(topCategories(favorablePlanets));
+  const leanInto = leanIntoList
+    ? LEAN_INTO_TEMPLATES[weekIndex % LEAN_INTO_TEMPLATES.length](leanIntoList)
     : '';
 
-  const takeCare = challengingPlanets.length
-    ? `Go easy on ${joinFriendly(flattenAreas(challengingPlanets.map((p) => p.areaOfInfluence)))} - avoid rushing decisions here.`
+  const takeCareList = joinFriendly(topCategories(challengingPlanets));
+  const takeCare = takeCareList
+    ? TAKE_CARE_TEMPLATES[weekIndex % TAKE_CARE_TEMPLATES.length](takeCareList)
     : '';
 
   const watchouts = specialWatch.map((p) => {
     const label = p.maleficTransit ?? 'Latta';
+    const continuing = previousWatchLabels.get(p.planet) === label;
     return {
       planet: p.planet,
       label,
-      advice: MALEFIC_TRANSIT_EXPLANATIONS[label],
+      advice: continuing
+        ? `Still in effect from last week - see week 1 for what ${label} means and why it matters.`
+        : MALEFIC_TRANSIT_EXPLANATIONS[label],
     };
   });
 
@@ -607,6 +680,7 @@ function buildWeekNarrative(transit, favorablePlanets, challengingPlanets, speci
  * @param {number} [weeks] - how many weekly snapshots to produce
  */
 export function computeTransitForecast(natalChart, startDate, weeks = 3) {
+  const previousWatchLabels = new Map();
   return Array.from({ length: weeks }, (_, i) => {
     const weekStart = new Date(startDate.getTime() + i * WEEK_MS);
     const weekEnd = new Date(weekStart.getTime() + WEEK_MS - 1);
@@ -614,7 +688,10 @@ export function computeTransitForecast(natalChart, startDate, weeks = 3) {
     const favorablePlanets = transit.planets.filter((p) => p.effect === 'favorable');
     const challengingPlanets = transit.planets.filter((p) => p.effect === 'challenging');
     const specialWatch = transit.planets.filter((p) => p.maleficTransit || p.latta);
-    const narrative = buildWeekNarrative(transit, favorablePlanets, challengingPlanets, specialWatch);
+    const narrative = buildWeekNarrative(transit, favorablePlanets, challengingPlanets, specialWatch, i, previousWatchLabels);
+
+    previousWatchLabels.clear();
+    for (const p of specialWatch) previousWatchLabels.set(p.planet, p.maleficTransit ?? 'Latta');
 
     return {
       weekIndex: i,
