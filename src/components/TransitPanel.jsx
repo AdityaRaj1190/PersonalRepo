@@ -51,7 +51,7 @@ export default function TransitPanel({ natalChart }) {
       <div className="transit-panel-header">
         <h3>Gochara (Current Transits)</h3>
         <button type="button" className="transit-refresh" onClick={handleRefresh}>
-          Refresh to now
+          Refresh
         </button>
       </div>
       <p className="transit-meta">
