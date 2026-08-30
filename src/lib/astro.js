@@ -480,7 +480,7 @@ const HOUSE_CATEGORY = {
   5: 'Education & Speculation',
   6: 'Health & Debts',
   7: 'Marriage',
-  8: 'Unexpected Change',
+  8: 'Sudden Setbacks & Health Scares',
   9: 'Fortune & Growth',
   10: 'Career',
   11: 'Investment',
