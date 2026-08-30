@@ -611,6 +611,11 @@ button[type='submit']:disabled {
   margin: 4px 0 16px;
 }
 
+.transit-refreshed-badge {
+  color: var(--exalted);
+  font-weight: 600;
+}
+
 .transit-tabs {
   display: inline-flex;
   flex-wrap: wrap;

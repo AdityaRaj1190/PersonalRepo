@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { computeTransitChart, computeTransitForecast } from '../lib/astro';
 import { formatDegree } from '../lib/format';
 
@@ -20,20 +20,32 @@ function formatWeekRange(start, end) {
 export default function TransitPanel({ natalChart }) {
   const [tab, setTab] = useState('overview');
   const [now, setNow] = useState(() => new Date());
+  const [justRefreshed, setJustRefreshed] = useState(false);
+  const refreshTimeoutRef = useRef(null);
 
   const transit = useMemo(() => computeTransitChart(natalChart, now), [natalChart, now]);
   const weeklyOutlook = useMemo(() => computeTransitForecast(natalChart, now, 3), [natalChart, now]);
+
+  useEffect(() => () => clearTimeout(refreshTimeoutRef.current), []);
+
+  function handleRefresh() {
+    setNow(new Date());
+    setJustRefreshed(true);
+    clearTimeout(refreshTimeoutRef.current);
+    refreshTimeoutRef.current = setTimeout(() => setJustRefreshed(false), 1500);
+  }
 
   return (
     <div className="transit-panel">
       <div className="transit-panel-header">
         <h3>Gochara (Current Transits)</h3>
-        <button type="button" className="transit-refresh" onClick={() => setNow(new Date())}>
+        <button type="button" className="transit-refresh" onClick={handleRefresh}>
           Refresh to now
         </button>
       </div>
       <p className="transit-meta">
         As of {transit.generatedAt.toLocaleString()} &middot; Lahiri ayanamsa {formatDegree(transit.ayanamsa)}
+        {justRefreshed && <span className="transit-refreshed-badge"> &middot; Updated</span>}
       </p>
 
       <div className="transit-tabs" role="tablist" aria-label="Transit view">

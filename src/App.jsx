@@ -42,7 +42,7 @@ export default function App() {
   const [error, setError] = useState('');
   const [varga, setVarga] = useState(1);
   const [showD1, setShowD1] = useState(false);
-  const [mainTab, setMainTab] = useState('chart');
+  const [mainTab, setMainTab] = useState('transits');
 
   const displayedChart = useMemo(() => {
     if (!result) return null;
@@ -69,7 +69,7 @@ export default function App() {
       const chart = computeBirthChart(utcDate, location.lat, location.lon);
       setResult({ name, location, local, timezone, offsetMinutes, chart });
       setVarga(1);
-      setMainTab('chart');
+      setMainTab('transits');
     } catch (err) {
       setError(err.message || 'Something went wrong while generating the chart.');
       setResult(null);
