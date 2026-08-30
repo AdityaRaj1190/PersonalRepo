@@ -565,7 +565,7 @@ export function computeTransitChart(natalChart, transitUtcDate) {
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-const MAX_CATEGORIES_SHOWN = 3;
+const MAX_CATEGORIES_SHOWN = 2;
 
 const listFormatter =
   typeof Intl !== 'undefined' && Intl.ListFormat ? new Intl.ListFormat('en', { style: 'long', type: 'conjunction' }) : null;
@@ -576,21 +576,109 @@ function joinFriendly(words) {
 }
 
 /**
- * Reduce a list of planets down to their top few distinct life categories,
- * most-touched first (how many transiting grahas point at that category),
- * ties broken by house order. Capping at MAX_CATEGORIES_SHOWN keeps the
- * weekly advice to a short, actionable handful of things rather than
- * naming every house every planet happens to be sitting in.
+ * Natural-language, category-specific advice, phrased for what that area
+ * of life actually means to act on - rather than a generic "make progress
+ * on X" template stapled onto every category (which reads oddly for
+ * something like Marriage). `planets` names which grahas are driving the
+ * read, so two windows pointing at the same category still read as
+ * distinct if a different graha is behind it.
  */
-function topCategories(planets, limit = MAX_CATEGORIES_SHOWN) {
-  const counts = new Map();
-  for (const p of planets) {
-    counts.set(p.category, (counts.get(p.category) ?? 0) + 1);
+const CATEGORY_ADVICE = {
+  Health: {
+    lean: (planets) => `Energy favors health and fitness routines, with ${planets} in support`,
+    care: (planets) => `Go easy on your body - with ${planets} in play, don't overdo it physically`,
+  },
+  Savings: {
+    lean: (planets) => `A good stretch to build up savings, helped along by ${planets}`,
+    care: (planets) => `With ${planets} in play, avoid impulsive spending that eats into savings`,
+  },
+  'Effort & Communication': {
+    lean: (planets) => `Effort and clear communication pay off, with ${planets} in your corner`,
+    care: (planets) => `Conversations may take extra effort under ${planets} - choose words carefully`,
+  },
+  Happiness: {
+    lean: (planets) => `Home life and personal happiness get a lift from ${planets}`,
+    care: (planets) => `Domestic harmony needs a little extra patience while ${planets} is in the mix`,
+  },
+  'Education & Speculation': {
+    lean: (planets) => `A good window for learning or a calculated bet, backed by ${planets}`,
+    care: (planets) => `With ${planets} in play, steer clear of big speculative risks or hasty exam/study calls`,
+  },
+  'Health & Debts': {
+    lean: (planets) => `Good time to tackle health routines or chip away at debts, with ${planets} helping`,
+    care: (planets) => `Watch for health dips or financial obligations creeping up under ${planets}`,
+  },
+  Marriage: {
+    lean: (planets) => `A warm stretch for your marriage or closest relationship - make time for it while ${planets} supports it`,
+    care: (planets) => `Be patient with your spouse or partner - with ${planets} in play, it's not the moment to force a hard conversation`,
+  },
+  'Sudden Setbacks & Health Scares': {
+    lean: (planets) => `Even sudden turns tend to work in your favor now, with ${planets} softening the edges`,
+    care: (planets) => `Stay alert to sudden setbacks or health scares - with ${planets} in play, avoid unnecessary risks`,
+  },
+  'Fortune & Growth': {
+    lean: (planets) => `Fortune leans your way for bigger-picture plans, with ${planets} behind it`,
+    care: (planets) => `Bigger plans may hit friction under ${planets} - keep ambitions modest for now`,
+  },
+  Career: {
+    lean: (planets) => `Career visibility and progress are supported by ${planets}`,
+    care: (planets) => `Go easy at work - with ${planets} in play, sidestep office politics or big asks`,
+  },
+  Investment: {
+    lean: (planets) => `A good window to make investment or income moves, with ${planets} on your side`,
+    care: (planets) => `With ${planets} in play, hold off on big investment decisions for now`,
+  },
+  Expenditure: {
+    lean: (planets) => `A fine time to spend on things that matter to you, eased by ${planets}`,
+    care: (planets) => `Keep an eye on expenditure - ${planets} in play means it's easy to overspend`,
+  },
+};
+
+/**
+ * Net the favorable and challenging planet lists down to their top few
+ * life categories, one bucket per direction. A category with planets on
+ * both sides (e.g. the Moon favoring Marriage while the Sun sits
+ * unfavorably in the same house) is resolved by majority rather than
+ * printed as both "lean into" and "take care with" - which read as
+ * self-contradictory - and dropped entirely on an exact tie.
+ */
+function netCategoryAdvice(favorablePlanets, challengingPlanets, limit = MAX_CATEGORIES_SHOWN) {
+  const byCategory = (planets) => {
+    const map = new Map();
+    for (const p of planets) {
+      if (!map.has(p.category)) map.set(p.category, []);
+      map.get(p.category).push(p.planet);
+    }
+    return map;
+  };
+  const favMap = byCategory(favorablePlanets);
+  const careMap = byCategory(challengingPlanets);
+
+  const lean = [];
+  const care = [];
+  for (const category of new Set([...favMap.keys(), ...careMap.keys()])) {
+    const favList = favMap.get(category) ?? [];
+    const careList = careMap.get(category) ?? [];
+    if (favList.length > careList.length) lean.push([category, favList]);
+    else if (careList.length > favList.length) care.push([category, careList]);
   }
-  return [...counts.entries()]
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, limit)
-    .map(([category]) => category.toLowerCase());
+
+  const toSentences = (entries) =>
+    entries
+      .sort((a, b) => b[1].length - a[1].length)
+      .slice(0, limit)
+      .map(([category, planets]) => {
+        const advice = CATEGORY_ADVICE[category];
+        return advice ? advice.lean(joinFriendly(planets)) : category;
+      });
+
+  return {
+    leanSentences: toSentences(lean),
+    careSentences: care
+      .sort((a, b) => b[1].length - a[1].length)
+      .slice(0, limit)
+      .map(([category, planets]) => CATEGORY_ADVICE[category]?.care(joinFriendly(planets)) ?? category),
+  };
 }
 
 function capitalize(s) {
@@ -615,18 +703,6 @@ const TIER_HEADLINES = {
   ],
 };
 
-const LEAN_INTO_TEMPLATES = [
-  (list) => `Good time to make progress on ${list}.`,
-  (list) => `${capitalize(list)} are where the energy favors you right now.`,
-  (list) => `Worth prioritizing ${list} while the support lasts.`,
-];
-
-const TAKE_CARE_TEMPLATES = [
-  (list) => `Go easy on ${list} - avoid rushing decisions here.`,
-  (list) => `Keep expectations modest around ${list} for now.`,
-  (list) => `${capitalize(list)} need extra patience right now - don't force outcomes.`,
-];
-
 /**
  * Build a plain-language advice narrative for one checkpoint's transit
  * snapshot: an overall headline based on the favorable/challenging
@@ -643,15 +719,9 @@ function buildPeriodNarrative(transit, favorablePlanets, challengingPlanets, spe
   const tier = ratio >= 0.6 ? 'favorable' : ratio >= 0.4 ? 'mixed' : 'demanding';
   const headline = TIER_HEADLINES[tier][variantIndex % TIER_HEADLINES[tier].length];
 
-  const leanIntoList = joinFriendly(topCategories(favorablePlanets));
-  const leanInto = leanIntoList
-    ? LEAN_INTO_TEMPLATES[variantIndex % LEAN_INTO_TEMPLATES.length](leanIntoList)
-    : '';
-
-  const takeCareList = joinFriendly(topCategories(challengingPlanets));
-  const takeCare = takeCareList
-    ? TAKE_CARE_TEMPLATES[variantIndex % TAKE_CARE_TEMPLATES.length](takeCareList)
-    : '';
+  const { leanSentences, careSentences } = netCategoryAdvice(favorablePlanets, challengingPlanets);
+  const leanInto = leanSentences.length ? `${capitalize(leanSentences.join('. '))}.` : '';
+  const takeCare = careSentences.length ? `${capitalize(careSentences.join('. '))}.` : '';
 
   const watchouts = specialWatch.map((p) => {
     const label = p.maleficTransit ?? 'Latta';
