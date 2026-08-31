@@ -272,13 +272,17 @@ export default function TransitPanel({ natalChart }) {
             </div>
           )}
           <p className="transit-nakshatra-note">
-            This is a sharper, degree-based read than the rest of this tab: it lines up each transiting
-            graha's exact longitude - and, for Mars/Jupiter/Saturn, the exact degree its classical special
-            aspects fall on - against your natal planets and Ascendant, within a {ASPECT_ORB_LABEL} orb.
-            "What to Watch For" is a general read on the two grahas involved, not a specific prediction -
-            treat it as which part of life this energy is touching, not what will definitely happen.
-            Timing estimates are a straight-line projection from the current rate of motion, so they get
-            less reliable the further out they are, especially near a planet's station (retrograde turn).
+            This is a sharper, degree-based read than the rest of this tab, scoped to the same ~20-day
+            window as the Overview outlook: it lines up each transiting graha's exact longitude - and, for
+            Mars/Jupiter/Saturn, the exact degree its classical special aspects fall on - against your
+            natal planets and Ascendant, within a {ASPECT_ORB_LABEL} orb, and leaves out anything not
+            projected to go exact within that window. Rahu and Ketu sit exactly opposite each other, so a
+            conjunction with one is always the same event as an opposition to the other - those are shown
+            as one "Lunar Nodes" row rather than two. "What to Watch For" is a general read on the two
+            grahas involved, not a specific prediction - treat it as which part of life this energy is
+            touching, not what will definitely happen. Timing estimates are a straight-line projection
+            from the current rate of motion, so they get less reliable the further out they are,
+            especially near a planet's station (retrograde turn).
           </p>
         </div>
       )}
