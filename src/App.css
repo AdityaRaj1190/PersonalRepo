@@ -576,6 +576,11 @@ button[type='submit']:disabled {
   letter-spacing: 0.04em;
 }
 
+.transit-aspect-meaning {
+  min-width: 260px;
+  color: var(--text-h);
+}
+
 .transit-panel {
   display: flex;
   flex-direction: column;

@@ -5,7 +5,7 @@ import { formatDegree } from '../lib/format';
 const TABS = [
   { id: 'overview', label: 'Overview' },
   { id: 'positions', label: 'Planet Positions' },
-  { id: 'aspects', label: 'Aspects' },
+  { id: 'aspects', label: 'Critical Aspects' },
 ];
 
 const ASPECT_ORB_LABEL = `${ASPECT_ORB_DEG}°`;
@@ -252,8 +252,8 @@ export default function TransitPanel({ natalChart }) {
                     <th>Aspect</th>
                     <th>Natal Point</th>
                     <th>Orb</th>
-                    <th>Trend</th>
-                    <th>Est. Exact</th>
+                    <th>Timing</th>
+                    <th>What to Watch For</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -263,10 +263,8 @@ export default function TransitPanel({ natalChart }) {
                       <td>{a.label}</td>
                       <td>{a.natalPoint}</td>
                       <td>{formatDegree(a.orbDeg)}</td>
-                      <td className={a.applying ? 'transit-aspect-applying' : ''}>
-                        {a.stationary ? 'Nearly stationary' : a.applying ? 'Applying' : 'Separating'}
-                      </td>
-                      <td>{a.exactDate ? a.exactDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '–'}</td>
+                      <td className={a.applying ? 'transit-aspect-applying' : ''}>{a.timingLabel}</td>
+                      <td className="transit-aspect-meaning">{a.meaning}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -277,10 +275,10 @@ export default function TransitPanel({ natalChart }) {
             This is a sharper, degree-based read than the rest of this tab: it lines up each transiting
             graha's exact longitude - and, for Mars/Jupiter/Saturn, the exact degree its classical special
             aspects fall on - against your natal planets and Ascendant, within a {ASPECT_ORB_LABEL} orb.
-            "Applying" means the gap is closing (worth watching as it tightens); "Separating" means it's
-            already past its closest point, whether that was days or months ago. Estimated exact dates
-            are a straight-line projection from the current rate of motion, so they get less reliable the
-            further out they are, especially near a planet's station (retrograde turn).
+            "What to Watch For" is a general read on the two grahas involved, not a specific prediction -
+            treat it as which part of life this energy is touching, not what will definitely happen.
+            Timing estimates are a straight-line projection from the current rate of motion, so they get
+            less reliable the further out they are, especially near a planet's station (retrograde turn).
           </p>
         </div>
       )}

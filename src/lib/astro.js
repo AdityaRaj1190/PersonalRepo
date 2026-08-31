@@ -853,6 +853,59 @@ function natalAspectPoints(natalChart) {
   ];
 }
 
+/** Each graha's classical domain, in a few plain words - the building blocks for a combination's "what to watch for". */
+const PLANET_THEME = {
+  Sun: 'identity, authority, and father',
+  Moon: 'mind, emotions, and mother',
+  Mars: 'drive, courage, and conflict',
+  Mercury: 'communication, intellect, and commerce',
+  Jupiter: 'wisdom, growth, and fortune',
+  Venus: 'relationships, pleasure, and finances',
+  Saturn: 'discipline, limitation, and long-term structure',
+  Rahu: 'ambition, obsession, and the unconventional',
+  Ketu: 'detachment, release, and the unseen',
+  Ascendant: 'your sense of self and physical body',
+};
+
+const BENEFICS = new Set(['Moon', 'Mercury', 'Jupiter', 'Venus']);
+
+/**
+ * A plain-language "what to watch for" sentence for a transiting-to-natal
+ * pairing: names both grahas' classical domains, then characterizes the
+ * combination's general nature (benefic-benefic, mixed, or malefic-
+ * malefic) - the same shape as a manual reading ("Jupiter conjoining Ketu
+ * brings a mix of detachment and unexpected material shifts..."), built
+ * from a formula rather than hand-written per pairing since there are too
+ * many transiting-planet x natal-point combinations to author individually.
+ */
+function aspectMeaning(transitingPlanet, natalPointName) {
+  const transitingTheme = PLANET_THEME[transitingPlanet];
+  const natalTheme = PLANET_THEME[natalPointName];
+  const transitingIsBenefic = BENEFICS.has(transitingPlanet);
+  const natalIsBenefic = natalPointName === 'Ascendant' || BENEFICS.has(natalPointName);
+
+  let nature;
+  if (transitingIsBenefic && natalIsBenefic) {
+    nature = 'generally supportive - good timing for growth and forward movement here';
+  } else if (transitingIsBenefic !== natalIsBenefic) {
+    nature = 'a mixed combination - real opportunity paired with real friction, so expect both an opening and a cost';
+  } else {
+    nature = 'an intense combination - pressure, restriction, or abrupt change are more likely, so move carefully';
+  }
+
+  return `Blends ${transitingTheme} with ${natalTheme} - ${nature}.`;
+}
+
+/** A one-line, plain-language read on where a pairing sits in its cycle. */
+function aspectTimingLabel(orbDeg, applying, stationary, exactDate) {
+  if (stationary) return "Nearly stationary right now - too slow-moving to say when it's exact";
+  if (applying && exactDate) {
+    return `Tightening toward exact around ${exactDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`;
+  }
+  if (applying) return 'Tightening toward exact';
+  return orbDeg < 1 ? 'At its closest point now, about to separate' : 'Already past its closest point, separating';
+}
+
 /**
  * Find every transiting-graha-to-natal-point pairing currently within
  * ASPECT_ORB_DEG of exact, alongside whether it's applying (tightening) or
@@ -891,6 +944,8 @@ export function computeExactAspects(natalChart, fromDate) {
           applying,
           stationary,
           exactDate,
+          timingLabel: aspectTimingLabel(orbNow, applying, stationary, exactDate),
+          meaning: aspectMeaning(planet, point.name),
         });
       }
     }
