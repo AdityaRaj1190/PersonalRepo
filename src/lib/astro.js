@@ -1022,13 +1022,24 @@ export function computeExactAspects(natalChart, fromDate) {
 
   results = mergeNodalDuplicates(results);
 
+  const aspectCountByPlanet = new Map();
+  for (const r of results) aspectCountByPlanet.set(r.planet, (aspectCountByPlanet.get(r.planet) ?? 0) + 1);
+
   return results
     .map((r) => ({
       ...r,
       timingLabel: aspectTimingLabel(r.orbDeg, r.applying, r.stationary, r.exactDate),
       meaning: aspectMeaning(r.planet, r.natalPoint),
     }))
-    .sort((a, b) => a.orbDeg - b.orbDeg);
+    .sort((a, b) => {
+      // Planets making multiple aspects right now are the most notable, so
+      // group them at the top (most aspects first) rather than interleaving
+      // by raw orb; within a planet's group, tightest orb still leads.
+      const countDiff = aspectCountByPlanet.get(b.planet) - aspectCountByPlanet.get(a.planet);
+      if (countDiff !== 0) return countDiff;
+      if (a.planet !== b.planet) return a.planet.localeCompare(b.planet);
+      return a.orbDeg - b.orbDeg;
+    });
 }
 
 /**
