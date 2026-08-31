@@ -487,6 +487,21 @@ const HOUSE_CATEGORY = {
   12: 'Expenditure',
 };
 
+/** Geocentric apparent sidereal (Lahiri) longitude of a transiting graha at a given moment. */
+function transitingSiderealLongitude(planet, date) {
+  const jd = toJulianDay(date);
+  const ayanamsa = lahiriAyanamsa(jd);
+  let tropical;
+  if (planet === 'Rahu') {
+    tropical = meanLunarNodeLongitude(jd);
+  } else if (planet === 'Ketu') {
+    tropical = normalizeDegrees(meanLunarNodeLongitude(jd) + 180);
+  } else {
+    tropical = tropicalLongitude(planet, date);
+  }
+  return normalizeDegrees(tropical - ayanamsa);
+}
+
 /**
  * Compute the current (Gochara) transit positions of every graha against
  * an already-computed natal (D1) chart. Transit houses are counted two
@@ -498,24 +513,14 @@ const HOUSE_CATEGORY = {
  * @param {Date} transitUtcDate - the moment to compute transits for
  */
 export function computeTransitChart(natalChart, transitUtcDate) {
-  const jd = toJulianDay(transitUtcDate);
-  const ayanamsa = lahiriAyanamsa(jd);
-
+  const ayanamsa = lahiriAyanamsa(toJulianDay(transitUtcDate));
   const natalMoon = natalChart.planets.find((p) => p.planet === 'Moon');
   const natalMoonRashi = natalMoon.rashi;
   const natalMoonNakshatraIndex = NAKSHATRAS.indexOf(natalMoon.nakshatra);
   const natalAscRashi = natalChart.ascendant.rashi;
 
   const planets = PLANETS.map((planet) => {
-    let tropical;
-    if (planet === 'Rahu') {
-      tropical = meanLunarNodeLongitude(jd);
-    } else if (planet === 'Ketu') {
-      tropical = normalizeDegrees(meanLunarNodeLongitude(jd) + 180);
-    } else {
-      tropical = tropicalLongitude(planet, transitUtcDate);
-    }
-    const sidereal = normalizeDegrees(tropical - ayanamsa);
+    const sidereal = transitingSiderealLongitude(planet, transitUtcDate);
     const rashi = rashiOf(sidereal);
     const degreeInRashi = sidereal % 30;
     const houseFromMoon = ((rashi - natalMoonRashi + 12) % 12) + 1;
@@ -807,6 +812,91 @@ export function computeTransitOutlook(natalChart, startDate, windowCount = OUTLO
       narrative,
     };
   });
+}
+
+/**
+ * Exact-degree conjunctions and aspects (graha yuti/drishti) between
+ * transiting grahas and natal planets/Ascendant - a sharper, degree-based
+ * companion to the whole-sign Gochara reading above. A transiting planet
+ * "aspects" a point ASPECT_ANGLE_STEPS*30 degrees ahead of its own exact
+ * longitude (0deg = conjunction, 180deg = every planet's universal 7th
+ * aspect, plus Mars/Jupiter/Saturn's classical special aspects); this
+ * checks how close that aspected degree currently sits to each natal
+ * point, in the same "degree-for-degree" style used by most sidereal
+ * software for calling an aspect "exact" rather than just same-house.
+ */
+export const ASPECT_ORB_DEG = 6;
+const ASPECT_TREND_SAMPLE_DAYS = 2;
+const ASPECT_MIN_DAILY_RATE = 0.02; // deg/day; below this, treat the pairing as effectively stationary
+
+function ordinal(n) {
+  const suffixes = ['th', 'st', 'nd', 'rd'];
+  const v = n % 100;
+  return `${n}${suffixes[(v - 20) % 10] ?? suffixes[v] ?? suffixes[0]}`;
+}
+
+function aspectLabel(offsetDeg) {
+  if (offsetDeg === 0) return 'Conjunction';
+  if (offsetDeg === 180) return 'Opposition (7th aspect)';
+  return `${ordinal(offsetDeg / 30 + 1)} aspect`;
+}
+
+function aspectOffsetsFor(planet) {
+  return [0, 180, ...(SPECIAL_ASPECT_OFFSETS[planet] ?? []).map((o) => o * 30)];
+}
+
+/** The natal chart's fixed points (every graha plus the Ascendant) that a transit can aspect. */
+function natalAspectPoints(natalChart) {
+  return [
+    ...natalChart.planets.map((p) => ({ name: p.planet, longitude: p.longitude })),
+    { name: 'Ascendant', longitude: natalChart.ascendant.longitude },
+  ];
+}
+
+/**
+ * Find every transiting-graha-to-natal-point pairing currently within
+ * ASPECT_ORB_DEG of exact, alongside whether it's applying (tightening) or
+ * separating, and - for applying pairs with a measurable rate - roughly
+ * when it goes exact. Slow, near-stationary pairings (a planet near a
+ * station) are flagged rather than given a speculative date.
+ * @param {ReturnType<typeof computeBirthChart>} natalChart
+ * @param {Date} fromDate - the moment to evaluate current orbs from
+ */
+export function computeExactAspects(natalChart, fromDate) {
+  const points = natalAspectPoints(natalChart);
+  const results = [];
+
+  for (const planet of PLANETS) {
+    const sampleDates = [-ASPECT_TREND_SAMPLE_DAYS, 0, ASPECT_TREND_SAMPLE_DAYS].map(
+      (d) => new Date(fromDate.getTime() + d * DAY_MS),
+    );
+    const sampleLongitudes = sampleDates.map((d) => transitingSiderealLongitude(planet, d));
+
+    for (const offsetDeg of aspectOffsetsFor(planet)) {
+      for (const point of points) {
+        const orbs = sampleLongitudes.map((lon) => angularSeparation(normalizeDegrees(lon + offsetDeg), point.longitude));
+        const orbNow = orbs[1];
+        if (orbNow > ASPECT_ORB_DEG) continue;
+
+        const rate = (orbs[2] - orbs[0]) / (2 * ASPECT_TREND_SAMPLE_DAYS); // deg/day, negative = tightening
+        const stationary = Math.abs(rate) < ASPECT_MIN_DAILY_RATE;
+        const applying = !stationary && rate < 0;
+        const exactDate = applying ? new Date(fromDate.getTime() + (orbNow / -rate) * DAY_MS) : null;
+
+        results.push({
+          planet,
+          natalPoint: point.name,
+          label: aspectLabel(offsetDeg),
+          orbDeg: orbNow,
+          applying,
+          stationary,
+          exactDate,
+        });
+      }
+    }
+  }
+
+  return results.sort((a, b) => a.orbDeg - b.orbDeg);
 }
 
 /**

@@ -1,11 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { computeTransitChart, computeTransitOutlook } from '../lib/astro';
+import { ASPECT_ORB_DEG, computeExactAspects, computeTransitChart, computeTransitOutlook } from '../lib/astro';
 import { formatDegree } from '../lib/format';
 
 const TABS = [
   { id: 'overview', label: 'Overview' },
   { id: 'positions', label: 'Planet Positions' },
+  { id: 'aspects', label: 'Aspects' },
 ];
+
+const ASPECT_ORB_LABEL = `${ASPECT_ORB_DEG}°`;
 
 function effectLabel(effect) {
   return effect === 'favorable' ? 'Favorable' : 'Challenging';
@@ -36,6 +39,7 @@ export default function TransitPanel({ natalChart }) {
 
   const transit = useMemo(() => computeTransitChart(natalChart, now), [natalChart, now]);
   const outlook = useMemo(() => computeTransitOutlook(natalChart, now), [natalChart, now]);
+  const exactAspects = useMemo(() => computeExactAspects(natalChart, now), [natalChart, now]);
 
   useEffect(() => () => clearTimeout(refreshTimeoutRef.current), []);
 
@@ -228,6 +232,55 @@ export default function TransitPanel({ natalChart }) {
             ways - "Overall" is the plain-language takeaway once both are weighed together, and is what's
             worth actually paying attention to. "Latta" and "Named Transit" flag a couple of specific,
             well-known afflictions rather than every weak placement.
+          </p>
+        </div>
+      )}
+
+      {tab === 'aspects' && (
+        <div className="transit-tabpanel">
+          {exactAspects.length === 0 ? (
+            <p className="transit-summary">
+              Nothing is within {ASPECT_ORB_LABEL} of exact right now - check back as the sky moves, or
+              switch to Planet Positions for the whole-sign picture.
+            </p>
+          ) : (
+            <div className="planet-table-wrapper">
+              <table className="planet-table">
+                <thead>
+                  <tr>
+                    <th>Transiting</th>
+                    <th>Aspect</th>
+                    <th>Natal Point</th>
+                    <th>Orb</th>
+                    <th>Trend</th>
+                    <th>Est. Exact</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {exactAspects.map((a, i) => (
+                    <tr key={i}>
+                      <td>{a.planet}</td>
+                      <td>{a.label}</td>
+                      <td>{a.natalPoint}</td>
+                      <td>{formatDegree(a.orbDeg)}</td>
+                      <td className={a.applying ? 'transit-aspect-applying' : ''}>
+                        {a.stationary ? 'Nearly stationary' : a.applying ? 'Applying' : 'Separating'}
+                      </td>
+                      <td>{a.exactDate ? a.exactDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '–'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+          <p className="transit-nakshatra-note">
+            This is a sharper, degree-based read than the rest of this tab: it lines up each transiting
+            graha's exact longitude - and, for Mars/Jupiter/Saturn, the exact degree its classical special
+            aspects fall on - against your natal planets and Ascendant, within a {ASPECT_ORB_LABEL} orb.
+            "Applying" means the gap is closing (worth watching as it tightens); "Separating" means it's
+            already past its closest point, whether that was days or months ago. Estimated exact dates
+            are a straight-line projection from the current rate of motion, so they get less reliable the
+            further out they are, especially near a planet's station (retrograde turn).
           </p>
         </div>
       )}
