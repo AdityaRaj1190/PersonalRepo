@@ -487,6 +487,21 @@ const HOUSE_CATEGORY = {
   12: 'Expenditure',
 };
 
+/** Geocentric apparent sidereal (Lahiri) longitude of a transiting graha at a given moment. */
+function transitingSiderealLongitude(planet, date) {
+  const jd = toJulianDay(date);
+  const ayanamsa = lahiriAyanamsa(jd);
+  let tropical;
+  if (planet === 'Rahu') {
+    tropical = meanLunarNodeLongitude(jd);
+  } else if (planet === 'Ketu') {
+    tropical = normalizeDegrees(meanLunarNodeLongitude(jd) + 180);
+  } else {
+    tropical = tropicalLongitude(planet, date);
+  }
+  return normalizeDegrees(tropical - ayanamsa);
+}
+
 /**
  * Compute the current (Gochara) transit positions of every graha against
  * an already-computed natal (D1) chart. Transit houses are counted two
@@ -498,24 +513,14 @@ const HOUSE_CATEGORY = {
  * @param {Date} transitUtcDate - the moment to compute transits for
  */
 export function computeTransitChart(natalChart, transitUtcDate) {
-  const jd = toJulianDay(transitUtcDate);
-  const ayanamsa = lahiriAyanamsa(jd);
-
+  const ayanamsa = lahiriAyanamsa(toJulianDay(transitUtcDate));
   const natalMoon = natalChart.planets.find((p) => p.planet === 'Moon');
   const natalMoonRashi = natalMoon.rashi;
   const natalMoonNakshatraIndex = NAKSHATRAS.indexOf(natalMoon.nakshatra);
   const natalAscRashi = natalChart.ascendant.rashi;
 
   const planets = PLANETS.map((planet) => {
-    let tropical;
-    if (planet === 'Rahu') {
-      tropical = meanLunarNodeLongitude(jd);
-    } else if (planet === 'Ketu') {
-      tropical = normalizeDegrees(meanLunarNodeLongitude(jd) + 180);
-    } else {
-      tropical = tropicalLongitude(planet, transitUtcDate);
-    }
-    const sidereal = normalizeDegrees(tropical - ayanamsa);
+    const sidereal = transitingSiderealLongitude(planet, transitUtcDate);
     const rashi = rashiOf(sidereal);
     const degreeInRashi = sidereal % 30;
     const houseFromMoon = ((rashi - natalMoonRashi + 12) % 12) + 1;
@@ -807,6 +812,223 @@ export function computeTransitOutlook(natalChart, startDate, windowCount = OUTLO
       narrative,
     };
   });
+}
+
+/**
+ * Exact-degree conjunctions and aspects (graha yuti/drishti) between
+ * transiting grahas and natal planets/Ascendant - a sharper, degree-based
+ * companion to the whole-sign Gochara reading above. A transiting planet
+ * "aspects" a point ASPECT_ANGLE_STEPS*30 degrees ahead of its own exact
+ * longitude (0deg = conjunction, 180deg = every planet's universal 7th
+ * aspect, plus Mars/Jupiter/Saturn's classical special aspects); this
+ * checks how close that aspected degree currently sits to each natal
+ * point, in the same "degree-for-degree" style used by most sidereal
+ * software for calling an aspect "exact" rather than just same-house.
+ */
+export const ASPECT_ORB_DEG = 6;
+const ASPECT_TREND_SAMPLE_DAYS = 2;
+const ASPECT_MIN_DAILY_RATE = 0.02; // deg/day; below this, treat the pairing as effectively stationary
+
+function ordinal(n) {
+  const suffixes = ['th', 'st', 'nd', 'rd'];
+  const v = n % 100;
+  return `${n}${suffixes[(v - 20) % 10] ?? suffixes[v] ?? suffixes[0]}`;
+}
+
+function aspectLabel(offsetDeg) {
+  if (offsetDeg === 0) return 'Conjunction';
+  if (offsetDeg === 180) return 'Opposition (7th aspect)';
+  return `${ordinal(offsetDeg / 30 + 1)} aspect`;
+}
+
+function aspectOffsetsFor(planet) {
+  return [0, 180, ...(SPECIAL_ASPECT_OFFSETS[planet] ?? []).map((o) => o * 30)];
+}
+
+/** The natal chart's fixed points (every graha plus the Ascendant) that a transit can aspect. */
+function natalAspectPoints(natalChart) {
+  return [
+    ...natalChart.planets.map((p) => ({ name: p.planet, longitude: p.longitude })),
+    { name: 'Ascendant', longitude: natalChart.ascendant.longitude },
+  ];
+}
+
+/** Each graha's classical domain, in a few plain words - the building blocks for a combination's "what to watch for". */
+const PLANET_THEME = {
+  Sun: 'identity, authority, and father',
+  Moon: 'mind, emotions, and mother',
+  Mars: 'drive, courage, and conflict',
+  Mercury: 'communication, intellect, and commerce',
+  Jupiter: 'wisdom, growth, and fortune',
+  Venus: 'relationships, pleasure, and finances',
+  Saturn: 'discipline, limitation, and long-term structure',
+  Rahu: 'ambition, obsession, and the unconventional',
+  Ketu: 'detachment, release, and the unseen',
+  Ascendant: 'your sense of self and physical body',
+  'Lunar Nodes (Rahu/Ketu)': 'your karmic axis - ambition and obsession paired with detachment and release',
+};
+
+const BENEFICS = new Set(['Moon', 'Mercury', 'Jupiter', 'Venus']);
+
+/**
+ * A few alternate phrasings per combination "nature", so two different
+ * transiting-to-natal pairings that happen to land in the same nature
+ * bucket (there are only three buckets) don't read as the exact same
+ * sentence with the theme words swapped. Picked deterministically per
+ * pairing (not randomly) so the same row reads the same way every time
+ * it's recomputed.
+ */
+const NATURE_PHRASES = {
+  supportive: [
+    'generally supportive - good timing for growth and forward movement here',
+    "a favorable combination - things tend to flow with less resistance than usual here",
+  ],
+  mixed: [
+    'a mixed combination - real opportunity paired with real friction, so expect both an opening and a cost',
+    "a two-sided combination - progress is possible, but rarely without a trade-off attached",
+  ],
+  intense: [
+    'an intense combination - pressure, restriction, or abrupt change are more likely, so move carefully',
+    'a demanding combination - this area gets tested rather than eased, so patience matters more than speed',
+  ],
+};
+
+function stringHash(s) {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
+  return Math.abs(h);
+}
+
+/**
+ * A plain-language "what to watch for" sentence for a transiting-to-natal
+ * pairing: names both grahas' classical domains, then characterizes the
+ * combination's general nature (benefic-benefic, mixed, or malefic-
+ * malefic) - the same shape as a manual reading ("Jupiter conjoining Ketu
+ * brings a mix of detachment and unexpected material shifts..."), built
+ * from a formula rather than hand-written per pairing since there are too
+ * many transiting-planet x natal-point combinations to author individually.
+ */
+function aspectMeaning(transitingPlanet, natalPointName) {
+  const transitingTheme = PLANET_THEME[transitingPlanet];
+  const natalTheme = PLANET_THEME[natalPointName];
+  const transitingIsBenefic = BENEFICS.has(transitingPlanet);
+  const natalIsBenefic = natalPointName === 'Ascendant' || BENEFICS.has(natalPointName);
+
+  const natureKey = transitingIsBenefic && natalIsBenefic ? 'supportive' : transitingIsBenefic !== natalIsBenefic ? 'mixed' : 'intense';
+  const phrases = NATURE_PHRASES[natureKey];
+  const nature = phrases[stringHash(`${transitingPlanet}:${natalPointName}`) % phrases.length];
+
+  return `Blends ${transitingTheme} with ${natalTheme} - ${nature}.`;
+}
+
+/**
+ * Rahu and Ketu sit exactly 180deg apart by construction, so a transiting
+ * planet's conjunction with natal Ketu is mathematically the same sky
+ * event as its opposition to natal Rahu (identical orb, always) - not two
+ * separate things worth two rows. Collapse any such pair into one entry
+ * naming both nodes, keeping the Conjunction-labeled framing when there's
+ * a choice since it reads more naturally than "opposition to the other node".
+ */
+function mergeNodalDuplicates(results) {
+  const isNode = (name) => name === 'Rahu' || name === 'Ketu';
+  const merged = [];
+  const consumed = new Set();
+
+  for (let i = 0; i < results.length; i++) {
+    if (consumed.has(i) || !isNode(results[i].natalPoint)) {
+      if (!consumed.has(i)) merged.push(results[i]);
+      continue;
+    }
+    const partnerIndex = results.findIndex(
+      (r, j) =>
+        j !== i &&
+        !consumed.has(j) &&
+        r.planet === results[i].planet &&
+        isNode(r.natalPoint) &&
+        r.natalPoint !== results[i].natalPoint &&
+        Math.abs(r.orbDeg - results[i].orbDeg) < 0.01,
+    );
+    if (partnerIndex === -1) {
+      merged.push(results[i]);
+      consumed.add(i);
+      continue;
+    }
+    const primary = results[i].label === 'Conjunction' ? results[i] : results[partnerIndex];
+    merged.push({ ...primary, natalPoint: 'Lunar Nodes (Rahu/Ketu)' });
+    consumed.add(i);
+    consumed.add(partnerIndex);
+  }
+
+  return merged;
+}
+
+/** A one-line, plain-language read on where a pairing sits in its cycle. */
+function aspectTimingLabel(orbDeg, applying, stationary, exactDate) {
+  if (stationary) return "Nearly stationary right now - too slow-moving to say when it's exact";
+  if (applying && exactDate) {
+    return `Tightening toward exact around ${exactDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`;
+  }
+  if (applying) return 'Tightening toward exact';
+  return orbDeg < 1 ? 'At its closest point now, about to separate' : 'Already past its closest point, separating';
+}
+
+/**
+ * How far ahead an applying pairing's projected exact date is allowed to
+ * be before it's left out - matches the 2x10-day span the Overview tab's
+ * outlook covers, so this tab stays scoped to "the same near-term window"
+ * rather than surfacing conjunctions that won't perfect for months.
+ */
+const ASPECT_HORIZON_DAYS = OUTLOOK_WINDOW_DAYS * OUTLOOK_WINDOW_COUNT;
+
+/**
+ * Find every transiting-graha-to-natal-point pairing currently within
+ * ASPECT_ORB_DEG of exact, alongside whether it's applying (tightening) or
+ * separating, and - for applying pairs with a measurable rate - roughly
+ * when it goes exact. Slow, near-stationary pairings (a planet near a
+ * station) are flagged rather than given a speculative date. Applying
+ * pairings projected to go exact beyond ASPECT_HORIZON_DAYS are left out,
+ * so this stays scoped to the same near-term window as the Overview tab's
+ * outlook rather than surfacing things that won't perfect for months.
+ * @param {ReturnType<typeof computeBirthChart>} natalChart
+ * @param {Date} fromDate - the moment to evaluate current orbs from
+ */
+export function computeExactAspects(natalChart, fromDate) {
+  const points = natalAspectPoints(natalChart);
+  let results = [];
+
+  for (const planet of PLANETS) {
+    const sampleDates = [-ASPECT_TREND_SAMPLE_DAYS, 0, ASPECT_TREND_SAMPLE_DAYS].map(
+      (d) => new Date(fromDate.getTime() + d * DAY_MS),
+    );
+    const sampleLongitudes = sampleDates.map((d) => transitingSiderealLongitude(planet, d));
+
+    for (const offsetDeg of aspectOffsetsFor(planet)) {
+      for (const point of points) {
+        const orbs = sampleLongitudes.map((lon) => angularSeparation(normalizeDegrees(lon + offsetDeg), point.longitude));
+        const orbNow = orbs[1];
+        if (orbNow > ASPECT_ORB_DEG) continue;
+
+        const rate = (orbs[2] - orbs[0]) / (2 * ASPECT_TREND_SAMPLE_DAYS); // deg/day, negative = tightening
+        const stationary = Math.abs(rate) < ASPECT_MIN_DAILY_RATE;
+        const applying = !stationary && rate < 0;
+        const daysToExact = applying ? orbNow / -rate : null;
+        if (applying && daysToExact > ASPECT_HORIZON_DAYS) continue;
+        const exactDate = applying ? new Date(fromDate.getTime() + daysToExact * DAY_MS) : null;
+
+        results.push({ planet, natalPoint: point.name, label: aspectLabel(offsetDeg), orbDeg: orbNow, applying, stationary, exactDate });
+      }
+    }
+  }
+
+  results = mergeNodalDuplicates(results);
+
+  return results
+    .map((r) => ({
+      ...r,
+      timingLabel: aspectTimingLabel(r.orbDeg, r.applying, r.stationary, r.exactDate),
+      meaning: aspectMeaning(r.planet, r.natalPoint),
+    }))
+    .sort((a, b) => a.orbDeg - b.orbDeg);
 }
 
 /**
