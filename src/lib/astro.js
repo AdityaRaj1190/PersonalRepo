@@ -1086,3 +1086,108 @@ export function computeDivisionalChart(chart, varga) {
     planets: planetsWithStrength,
   };
 }
+
+/**
+ * Vimshottari Dasha: the standard Parashari planetary-period system, a
+ * fixed 120-year cycle split among the 9 grahas (Ketu 7, Venus 20, Sun 6,
+ * Moon 10, Mars 7, Rahu 18, Jupiter 16, Saturn 19, Mercury 17), always in
+ * this order. Which graha's period is running at birth - and how much of
+ * it is already "used up" - is read from the Moon's exact position within
+ * its natal nakshatra; each nakshatra's ruling graha is fixed by cycling
+ * through the same 9-graha order every 3 nakshatras (Ashwini=Ketu,
+ * Bharani=Venus, ... Ashlesha=Mercury, Magha=Ketu again, ...).
+ * Antardashas (sub-periods) and Pratyantardashas (sub-sub-periods) are
+ * each just the same 120-year proportional split applied recursively to
+ * a shorter span, starting with that span's own lord.
+ */
+export const DASHA_ORDER = ['Ketu', 'Venus', 'Sun', 'Moon', 'Mars', 'Rahu', 'Jupiter', 'Saturn', 'Mercury'];
+export const DASHA_YEARS = { Ketu: 7, Venus: 20, Sun: 6, Moon: 10, Mars: 7, Rahu: 18, Jupiter: 16, Saturn: 19, Mercury: 17 };
+const DASHA_TOTAL_YEARS = 120;
+const DASHA_YEAR_MS = 365.2425 * DAY_MS;
+
+function addDashaYears(date, years) {
+  return new Date(date.getTime() + years * DASHA_YEAR_MS);
+}
+
+function nakshatraLordOf(nakshatraIndex) {
+  return DASHA_ORDER[nakshatraIndex % 9];
+}
+
+/**
+ * Split [startDate, startDate+years) into 9 sequential sub-periods, one
+ * per graha in DASHA_ORDER starting from `lord`, each sized proportional
+ * to that graha's share of the full 120-year cycle. Used for Mahadasha ->
+ * Antardasha and Antardasha -> Pratyantardasha alike - it's the same
+ * proportional split at any depth, just applied to a shorter span.
+ */
+function subdivideDasha(startDate, years, lord) {
+  const startIndex = DASHA_ORDER.indexOf(lord);
+  let cursor = startDate;
+  return DASHA_ORDER.map((_, i) => {
+    const subLord = DASHA_ORDER[(startIndex + i) % 9];
+    const subYears = (DASHA_YEARS[subLord] / DASHA_TOTAL_YEARS) * years;
+    const periodStart = cursor;
+    const endDate = addDashaYears(cursor, subYears);
+    cursor = endDate;
+    return { lord: subLord, years: subYears, startDate: periodStart, endDate };
+  });
+}
+
+/**
+ * Drop any sub-period that fully elapsed before birth (only possible for
+ * the very first few sub-periods of the very first Mahadasha, since the
+ * "balance of dasha at birth" means part of that first cycle was already
+ * spent before the birth moment), and clip the display start of the one
+ * spanning birth so nothing shows a start date before the person was
+ * born - the true (pre-birth) date is still what drives the math for
+ * everything downstream, only the displayed label is clipped.
+ */
+function clipToBirth(periods, birthUtcDate) {
+  return periods
+    .filter((p) => p.endDate > birthUtcDate)
+    .map((p) => ({ ...p, startDate: p.startDate < birthUtcDate ? birthUtcDate : p.startDate }));
+}
+
+/**
+ * The full Vimshottari Mahadasha sequence for a lifetime (one 120-year
+ * cycle from birth), each with its 9 Antardashas already computed -
+ * cheap enough (9x9=81 periods) to do eagerly. Pratyantardashas are
+ * deliberately NOT computed here (that's another x9 = 729 periods across
+ * the whole chart) - call computePratyantardashas() for just the one
+ * Antardasha currently of interest.
+ * @param {ReturnType<typeof computeBirthChart>} natalChart
+ * @param {Date} birthUtcDate - the exact birth moment used to compute the chart
+ */
+export function computeVimshottariMahadashas(natalChart, birthUtcDate) {
+  const moon = natalChart.planets.find((p) => p.planet === 'Moon');
+  const nakshatraSpan = 360 / 27;
+  const nakshatraIndex = NAKSHATRAS.indexOf(moon.nakshatra);
+  const positionInNakshatra = normalizeDegrees(moon.longitude) % nakshatraSpan;
+  const fractionElapsed = positionInNakshatra / nakshatraSpan;
+
+  const startLord = nakshatraLordOf(nakshatraIndex);
+  const elapsedYears = DASHA_YEARS[startLord] * fractionElapsed;
+  const virtualEpoch = new Date(birthUtcDate.getTime() - elapsedYears * DASHA_YEAR_MS);
+
+  const mahadashas = clipToBirth(subdivideDasha(virtualEpoch, DASHA_TOTAL_YEARS, startLord), birthUtcDate);
+
+  return mahadashas.map((maha) => ({
+    ...maha,
+    antardashas: clipToBirth(subdivideDasha(maha.startDate, maha.years, maha.lord), birthUtcDate),
+  }));
+}
+
+/**
+ * The 9 Pratyantardashas within one Antardasha, computed lazily (call
+ * this only for the Antardasha a user has actually expanded in the UI).
+ * @param {{lord: string, years: number, startDate: Date}} antardasha - one entry from a Mahadasha's `antardashas` array
+ * @param {Date} birthUtcDate - the same birth moment passed to computeVimshottariMahadashas
+ */
+export function computePratyantardashas(antardasha, birthUtcDate) {
+  return clipToBirth(subdivideDasha(antardasha.startDate, antardasha.years, antardasha.lord), birthUtcDate);
+}
+
+/** Is `date` within [period.startDate, period.endDate)? Used to highlight the currently-running period at any dasha level. */
+export function isDashaPeriodCurrent(period, date) {
+  return date >= period.startDate && date < period.endDate;
+}

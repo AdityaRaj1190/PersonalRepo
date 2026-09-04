@@ -773,3 +773,91 @@ button[type='submit']:disabled {
   color: var(--text);
   opacity: 0.75;
 }
+
+.dasha-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dasha-current-callout {
+  border: 1px solid var(--accent-border);
+  background: var(--accent-bg);
+  border-radius: 10px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dasha-current-label {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+}
+
+.dasha-current-value {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-h);
+}
+
+.dasha-current-detail {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text);
+}
+
+.dasha-table th:first-child,
+.dasha-table td.dasha-caret {
+  width: 20px;
+}
+
+.dasha-caret {
+  color: var(--accent);
+  font-size: 11px;
+}
+
+.dasha-lord-cell {
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.dasha-current-tag {
+  margin-left: 8px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--accent);
+  background: var(--accent-bg);
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+
+.dasha-row {
+  cursor: pointer;
+}
+
+.dasha-row:hover {
+  background: var(--accent-bg);
+}
+
+.dasha-row-current {
+  background: var(--accent-bg);
+}
+
+.dasha-nested-cell {
+  padding: 0 !important;
+  border-bottom: none !important;
+}
+
+.dasha-sub-table {
+  margin: 4px 0 8px 20px;
+  width: calc(100% - 20px);
+  font-size: 13px;
+}
