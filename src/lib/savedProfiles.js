@@ -33,3 +33,7 @@ export function saveProfile({ name, location, dob, tob }) {
 export function deleteSavedProfile(id) {
   writeAll(readAll().filter((p) => p.id !== id));
 }
+
+export function formatSavedProfileLabel(p) {
+  return `${p.name} · ${p.dob} · ${p.location?.label.split(',')[0].trim() ?? ''}`;
+}

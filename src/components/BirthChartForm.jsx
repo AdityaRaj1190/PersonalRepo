@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import LocationAutocomplete from './LocationAutocomplete';
+import SavedProfilesMenu from './SavedProfilesMenu';
 import { deleteSavedProfile, listSavedProfiles, saveProfile } from '../lib/savedProfiles';
 
 const initialState = {
@@ -9,15 +10,10 @@ const initialState = {
   tob: '',
 };
 
-function formatSavedLabel(p) {
-  return `${p.name} · ${p.dob} · ${p.location?.label.split(',')[0].trim() ?? ''}`;
-}
-
 export default function BirthChartForm({ onSubmit, isSubmitting }) {
   const [form, setForm] = useState(initialState);
   const [error, setError] = useState('');
   const [saved, setSaved] = useState(() => listSavedProfiles());
-  const [selectedId, setSelectedId] = useState('');
 
   function handleSubmit(e) {
     e.preventDefault();
@@ -41,53 +37,19 @@ export default function BirthChartForm({ onSubmit, isSubmitting }) {
     });
   }
 
-  function handleLoad(id) {
-    const p = saved.find((s) => s.id === id);
-    setSelectedId(id);
-    if (!p) return;
-    setForm({ name: p.name, location: p.location, dob: p.dob, tob: p.tob });
+  function handleLoad(profile) {
+    setForm({ name: profile.name, location: profile.location, dob: profile.dob, tob: profile.tob });
     setError('');
   }
 
-  function handleDelete() {
-    if (!selectedId) return;
-    deleteSavedProfile(selectedId);
-    setSelectedId('');
+  function handleDelete(id) {
+    deleteSavedProfile(id);
     setSaved(listSavedProfiles());
   }
 
   return (
     <>
-      {saved.length > 0 && (
-        <div className="saved-profiles">
-          <label htmlFor="saved-profiles-select">Saved</label>
-          <div className="saved-profiles-row">
-            <select
-              id="saved-profiles-select"
-              value={selectedId}
-              onChange={(e) => handleLoad(e.target.value)}
-            >
-              <option value="" disabled>
-                Load a saved profile...
-              </option>
-              {saved.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {formatSavedLabel(p)}
-                </option>
-              ))}
-            </select>
-            <button
-              type="button"
-              className="saved-profile-delete"
-              disabled={!selectedId}
-              aria-label="Delete selected saved profile"
-              onClick={handleDelete}
-            >
-              &times;
-            </button>
-          </div>
-        </div>
-      )}
+      <SavedProfilesMenu saved={saved} onLoad={handleLoad} onDelete={handleDelete} />
 
       <form className="birth-chart-form" onSubmit={handleSubmit}>
         <div className="field">
