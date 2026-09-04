@@ -83,6 +83,18 @@ input:focus {
   box-shadow: 0 0 0 3px var(--accent-bg);
 }
 
+/* iOS Safari's native date/time control has fixed-width internal segments
+   (calendar/clock icon + text) that can render wider than the input's own
+   CSS box at the default font size, visually bleeding past its border -
+   Chromium doesn't reproduce this. A smaller font and tighter side padding
+   give the control enough room to fit without needing to grow. */
+input[type='date'],
+input[type='time'] {
+  min-width: 0;
+  padding: 10px 8px;
+  font-size: 15px;
+}
+
 .field-hint {
   font-size: 12px;
   color: var(--text);
