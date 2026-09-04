@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import BirthChartForm from './components/BirthChartForm';
 import BirthSummary from './components/BirthSummary';
 import ChartDisplay from './components/ChartDisplay';
+import DashaPanel from './components/DashaPanel';
 import PlanetTable from './components/PlanetTable';
 import TransitPanel from './components/TransitPanel';
 import { computeBirthChart, computeDivisionalChart } from './lib/astro';
@@ -11,6 +12,7 @@ import './App.css';
 const MAIN_TABS = [
   { id: 'chart', label: 'Chart Details' },
   { id: 'transits', label: 'Current Transits' },
+  { id: 'dasha', label: 'Dasha Periods' },
 ];
 
 const VARGAS = [
@@ -67,7 +69,7 @@ export default function App() {
     try {
       const { utcDate, timezone, offsetMinutes } = localToUtc(local, location.lat, location.lon);
       const chart = computeBirthChart(utcDate, location.lat, location.lon);
-      setResult({ name, location, local, timezone, offsetMinutes, chart });
+      setResult({ name, location, local, timezone, offsetMinutes, chart, utcDate });
       setVarga(1);
       setMainTab('transits');
     } catch (err) {
@@ -159,6 +161,12 @@ export default function App() {
             {mainTab === 'transits' && (
               <div className="main-tabpanel">
                 <TransitPanel natalChart={result.chart} />
+              </div>
+            )}
+
+            {mainTab === 'dasha' && (
+              <div className="main-tabpanel">
+                <DashaPanel natalChart={result.chart} birthUtcDate={result.utcDate} />
               </div>
             )}
           </section>
