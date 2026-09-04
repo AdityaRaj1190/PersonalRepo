@@ -388,6 +388,19 @@ function overallReading(effect, taraNature) {
   return 'mixed signals';
 }
 
+/** Plain-language label and UI class for each `overall` reading value, shared by any UI showing it. */
+export const OVERALL_READING_LABELS = {
+  favorable: 'Favorable',
+  'use caution': 'Use Caution',
+  'mixed signals': 'Mixed Signals',
+};
+
+export const OVERALL_READING_CLASSES = {
+  favorable: 'transit-effect-favorable',
+  'use caution': 'transit-effect-challenging',
+  'mixed signals': 'transit-effect-mixed',
+};
+
 /**
  * Latta ("kick") dosha: a commonly-taught rule (Tamil/Kannada panchangam
  * tradition) marking specific nakshatra distances - counted 1-27 from the
@@ -1190,4 +1203,22 @@ export function computePratyantardashas(antardasha, birthUtcDate) {
 /** Is `date` within [period.startDate, period.endDate)? Used to highlight the currently-running period at any dasha level. */
 export function isDashaPeriodCurrent(period, date) {
   return date >= period.startDate && date < period.endDate;
+}
+
+/**
+ * Where a dasha lord's own Gochara (transit) stood at a given moment -
+ * the classical "how will this period actually feel" cross-check: a
+ * Pratyantardasha lord that's transiting a favorable house from your
+ * natal Moon when its own period opens tends to deliver more easily than
+ * one that's transiting a difficult one, even within the same Mahadasha.
+ * Reuses computeTransitChart() and just picks out the one graha running
+ * the dasha, so it carries the same category/effect/overall reading used
+ * throughout the Current Transits panel.
+ * @param {ReturnType<typeof computeBirthChart>} natalChart
+ * @param {string} lord - a graha name, e.g. one of DASHA_ORDER
+ * @param {Date} date - the moment to evaluate the transit at (typically a dasha period's start)
+ */
+export function gocharaSnapshotForDashaLord(natalChart, lord, date) {
+  const transit = computeTransitChart(natalChart, date);
+  return transit.planets.find((p) => p.planet === lord);
 }

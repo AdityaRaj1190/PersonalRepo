@@ -1,5 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ASPECT_ORB_DEG, computeExactAspects, computeTransitChart, computeTransitOutlook } from '../lib/astro';
+import {
+  ASPECT_ORB_DEG,
+  OVERALL_READING_CLASSES,
+  OVERALL_READING_LABELS,
+  computeExactAspects,
+  computeTransitChart,
+  computeTransitOutlook,
+} from '../lib/astro';
 import { formatDegree } from '../lib/format';
 
 const TABS = [
@@ -14,17 +21,6 @@ function effectLabel(effect) {
   return effect === 'favorable' ? 'Favorable' : 'Challenging';
 }
 
-const OVERALL_LABELS = {
-  favorable: 'Favorable',
-  'use caution': 'Use Caution',
-  'mixed signals': 'Mixed Signals',
-};
-
-const OVERALL_CLASSES = {
-  favorable: 'transit-effect-favorable',
-  'use caution': 'transit-effect-challenging',
-  'mixed signals': 'transit-effect-mixed',
-};
 
 function formatWindowRange(start, end) {
   const opts = { month: 'short', day: 'numeric' };
@@ -213,7 +209,7 @@ export default function TransitPanel({ natalChart }) {
                 {transit.planets.map((p) => (
                   <tr key={p.planet}>
                     <td>{p.planet}</td>
-                    <td className={OVERALL_CLASSES[p.overall]}>{OVERALL_LABELS[p.overall]}</td>
+                    <td className={OVERALL_READING_CLASSES[p.overall]}>{OVERALL_READING_LABELS[p.overall]}</td>
                     <td className={`transit-effect-${p.effect}`}>{effectLabel(p.effect)}</td>
                     <td className={`transit-tara-${p.tara.nature}`}>{p.tara.name}</td>
                     <td className={p.latta ? 'transit-effect-challenging' : ''}>{p.latta ? 'Yes' : '–'}</td>

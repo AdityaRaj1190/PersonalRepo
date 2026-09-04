@@ -1,5 +1,12 @@
 import { Fragment, useMemo, useState } from 'react';
-import { computePratyantardashas, computeVimshottariMahadashas, isDashaPeriodCurrent } from '../lib/astro';
+import {
+  OVERALL_READING_CLASSES,
+  OVERALL_READING_LABELS,
+  computePratyantardashas,
+  computeVimshottariMahadashas,
+  gocharaSnapshotForDashaLord,
+  isDashaPeriodCurrent,
+} from '../lib/astro';
 
 const YEAR_MS = 365.2425 * 24 * 60 * 60 * 1000;
 
@@ -60,6 +67,14 @@ export default function DashaPanel({ natalChart, birthUtcDate }) {
   const pratyantardashas = useMemo(
     () => (expandedAntarPeriod ? computePratyantardashas(expandedAntarPeriod, birthUtcDate) : []),
     [expandedAntarPeriod, birthUtcDate],
+  );
+
+  // What each Pratyantardasha's own lord is doing in Gochara at the moment that
+  // sub-sub-period opens - the classical "how will this period actually feel"
+  // cross-check between Dasha and transit.
+  const pratyantardashaGochara = useMemo(
+    () => pratyantardashas.map((praty) => gocharaSnapshotForDashaLord(natalChart, praty.lord, praty.startDate)),
+    [pratyantardashas, natalChart],
   );
 
   // Computed independently of what's expanded in the table (cheap - 9 items) so the
@@ -170,25 +185,34 @@ export default function DashaPanel({ natalChart, birthUtcDate }) {
                                               <th>Start</th>
                                               <th>End</th>
                                               <th>Duration</th>
+                                              <th>Gochara Theme</th>
+                                              <th>Beneficial</th>
                                             </tr>
                                           </thead>
                                           <tbody>
-                                            {pratyantardashas.map((praty) => (
-                                              <tr
-                                                key={periodKey(praty)}
-                                                className={isSamePeriod(praty, currentPratyantardasha) ? 'dasha-row-current' : ''}
-                                              >
-                                                <td className="dasha-lord-cell">
-                                                  {praty.lord}
-                                                  {isSamePeriod(praty, currentPratyantardasha) && (
-                                                    <span className="dasha-current-tag">Now</span>
-                                                  )}
-                                                </td>
-                                                <td>{formatDate(praty.startDate)}</td>
-                                                <td>{formatDate(praty.endDate)}</td>
-                                                <td>{formatDuration(praty.startDate, praty.endDate)}</td>
-                                              </tr>
-                                            ))}
+                                            {pratyantardashas.map((praty, i) => {
+                                              const gochara = pratyantardashaGochara[i];
+                                              return (
+                                                <tr
+                                                  key={periodKey(praty)}
+                                                  className={isSamePeriod(praty, currentPratyantardasha) ? 'dasha-row-current' : ''}
+                                                >
+                                                  <td className="dasha-lord-cell">
+                                                    {praty.lord}
+                                                    {isSamePeriod(praty, currentPratyantardasha) && (
+                                                      <span className="dasha-current-tag">Now</span>
+                                                    )}
+                                                  </td>
+                                                  <td>{formatDate(praty.startDate)}</td>
+                                                  <td>{formatDate(praty.endDate)}</td>
+                                                  <td>{formatDuration(praty.startDate, praty.endDate)}</td>
+                                                  <td>{gochara?.category}</td>
+                                                  <td className={gochara ? OVERALL_READING_CLASSES[gochara.overall] : ''}>
+                                                    {gochara ? OVERALL_READING_LABELS[gochara.overall] : '–'}
+                                                  </td>
+                                                </tr>
+                                              );
+                                            })}
                                           </tbody>
                                         </table>
                                       </td>
@@ -214,7 +238,10 @@ export default function DashaPanel({ natalChart, birthUtcDate }) {
         Moon sat in its birth nakshatra - so the first Mahadasha shown is only its remaining balance, not
         a full period. Each level (Mahadasha, Antardasha, Pratyantardasha) is the same proportional split
         applied recursively to a shorter span. Click a Mahadasha to see its Antardashas, and an Antardasha
-        to see its Pratyantardashas.
+        to see its Pratyantardashas. "Gochara Theme" and "Beneficial" show where that Pratyantardasha's own
+        lord is transiting - from your natal Moon - at the moment that sub-sub-period opens: a classical
+        cross-check for how a period actually tends to feel, since a graha whose own dasha is running can
+        still be transiting a difficult house when it starts.
       </p>
     </div>
   );
