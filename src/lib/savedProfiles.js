@@ -35,5 +35,5 @@ export function deleteSavedProfile(id) {
 }
 
 export function formatSavedProfileLabel(p) {
-  return `${p.name} · ${p.dob} · ${p.location?.label.split(',')[0].trim() ?? ''}`;
+  return `${p.name} · ${p.dob} ${p.tob} · ${p.location?.label.split(',')[0].trim() ?? ''}`;
 }
