@@ -523,12 +523,6 @@ button[type='submit']:disabled {
   -webkit-overflow-scrolling: touch;
 }
 
-@media (max-width: 400px) {
-  .field-row {
-    flex-direction: column;
-  }
-}
-
 @media (max-width: 560px) {
   .form-section,
   .result-section {
