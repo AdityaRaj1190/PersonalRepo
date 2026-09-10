@@ -4,6 +4,7 @@ import BirthSummary from './components/BirthSummary';
 import ChartDisplay from './components/ChartDisplay';
 import DashaPanel from './components/DashaPanel';
 import PlanetTable from './components/PlanetTable';
+import SarvatobhadraChakra from './components/SarvatobhadraChakra';
 import TransitPanel from './components/TransitPanel';
 import { computeBirthChart, computeDivisionalChart } from './lib/astro';
 import { localToUtc } from './lib/geocode';
@@ -13,6 +14,7 @@ const MAIN_TABS = [
   { id: 'chart', label: 'Chart Details' },
   { id: 'transits', label: 'Current Transits' },
   { id: 'dasha', label: 'Dasha Periods' },
+  { id: 'sarvatobhadra', label: 'Sarvatobhadra Chakra' },
 ];
 
 const VARGAS = [
@@ -167,6 +169,12 @@ export default function App() {
             {mainTab === 'dasha' && (
               <div className="main-tabpanel">
                 <DashaPanel natalChart={result.chart} birthUtcDate={result.utcDate} />
+              </div>
+            )}
+
+            {mainTab === 'sarvatobhadra' && (
+              <div className="main-tabpanel">
+                <SarvatobhadraChakra natalChart={result.chart} />
               </div>
             )}
           </section>

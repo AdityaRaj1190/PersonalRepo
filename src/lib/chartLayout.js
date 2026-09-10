@@ -62,3 +62,49 @@ export const SOUTH_INDIAN_RASHI_CELLS = {
   9: [2, 0], 4: [2, 3],
   8: [3, 0], 7: [3, 1], 6: [3, 2], 5: [3, 3],
 };
+
+/**
+ * Sarvatobhadra Chakra: a 9x9 grid whose 28-cell outer border holds the 27
+ * nakshatras plus Abhijit (inserted between Uttara Ashadha and Shravana, its
+ * classical position), and whose inner diamond (the two diagonals of the
+ * inner 7x7, minus the shared center cell) holds the 12 rashis. This is a
+ * simplified, teaching-level layout (sequential border order, rashis grouped
+ * in four 3-sign arms) rather than a reproduction of any one classical
+ * text's exact cell-by-cell placement, which varies by source.
+ */
+export const SARVATOBHADRA_GRID_SIZE = 9;
+
+export const SARVATOBHADRA_BORDER_NAKSHATRAS = [
+  'Ashwini', 'Bharani', 'Krittika', 'Rohini', 'Mrigashira', 'Ardra', 'Punarvasu',
+  'Pushya', 'Ashlesha', 'Magha', 'Purva Phalguni', 'Uttara Phalguni', 'Hasta', 'Chitra',
+  'Swati', 'Vishakha', 'Anuradha', 'Jyeshtha', 'Mula', 'Purva Ashadha', 'Uttara Ashadha',
+  'Abhijit', 'Shravana', 'Dhanishta', 'Shatabhisha', 'Purva Bhadrapada', 'Uttara Bhadrapada', 'Revati',
+];
+
+function sarvatobhadraBorderPath() {
+  const cells = [];
+  for (let c = 1; c <= 7; c++) cells.push([0, c]);
+  for (let r = 1; r <= 7; r++) cells.push([r, 8]);
+  for (let c = 7; c >= 1; c--) cells.push([8, c]);
+  for (let r = 7; r >= 1; r--) cells.push([r, 0]);
+  return cells;
+}
+
+export const SARVATOBHADRA_BORDER_CELLS = sarvatobhadraBorderPath().map(([row, col], i) => ({
+  row, col, nakshatra: SARVATOBHADRA_BORDER_NAKSHATRAS[i],
+}));
+
+export const SARVATOBHADRA_CORNER_CELLS = [[0, 0], [0, 8], [8, 8], [8, 0]];
+
+const SARVATOBHADRA_RASHI_ARMS = [
+  { cells: [[1, 1], [2, 2], [3, 3]], rashis: [0, 1, 2] }, // Aries, Taurus, Gemini (NW)
+  { cells: [[1, 7], [2, 6], [3, 5]], rashis: [3, 4, 5] }, // Cancer, Leo, Virgo (NE)
+  { cells: [[7, 7], [6, 6], [5, 5]], rashis: [6, 7, 8] }, // Libra, Scorpio, Sagittarius (SE)
+  { cells: [[7, 1], [6, 2], [5, 3]], rashis: [9, 10, 11] }, // Capricorn, Aquarius, Pisces (SW)
+];
+
+export const SARVATOBHADRA_RASHI_CELLS = SARVATOBHADRA_RASHI_ARMS.flatMap(({ cells, rashis }) =>
+  cells.map(([row, col], i) => ({ row, col, rashi: rashis[i] })),
+);
+
+export const SARVATOBHADRA_CENTER_CELL = { row: 4, col: 4 };
