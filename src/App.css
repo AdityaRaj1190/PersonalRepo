@@ -591,6 +591,17 @@ button[type='submit']:disabled {
   color: var(--danger);
 }
 
+.sarvatobhadra-upagraha-item-natal {
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.sarvatobhadra-natal-label {
+  font-size: 6.5px;
+  fill: var(--accent);
+  font-weight: 700;
+}
+
 .sarvatobhadra-highlight-controls {
   display: flex;
   justify-content: center;

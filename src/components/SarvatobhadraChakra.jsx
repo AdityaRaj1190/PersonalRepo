@@ -17,8 +17,12 @@ const SIZE = SARVATOBHADRA_GRID_SIZE * CELL;
  * The Sarvatobhadra Chakra ("all-auspicious wheel"): a live, transit-based
  * 9x9 grid - the 28 nakshatras (27 plus Abhijit) ring the border, the 12
  * rashis fill an inner diamond. Border cells show which graha(s) are
- * transiting each nakshatra right now, plus any Upagraha dosha tag that
- * currently lands there (see computeSbcUpagrahas). The Lagna rashi is
+ * transiting each nakshatra right now ("N: ..." marks this chart's own
+ * natal points there), plus any Upagraha dosha tag that currently lands
+ * there (see computeSbcUpagrahas) - those tags are the same for everyone at
+ * a given moment (they're computed from the transiting Sun alone), so the
+ * "Active right now" panel below flags which ones actually touch *this*
+ * chart's natal points as the personally relevant ones. The Lagna rashi is
  * highlighted in the inner diamond as a fixed personal reference point.
  */
 const borderCellByNakshatra = SARVATOBHADRA_BORDER_CELLS.reduce((map, c) => {
@@ -63,6 +67,18 @@ export default function SarvatobhadraChakra({ natalChart }) {
   for (const u of upagrahas) {
     (upagrahasByNakshatra[u.nakshatra] ??= []).push(u);
   }
+
+  // The Upagraha points themselves are the same for everyone at a given
+  // moment (they're computed from the transiting Sun alone) - what makes a
+  // hit personally relevant is whether *this chart's own* natal points
+  // (Ascendant, or any natal graha) happen to sit in one of those currently
+  // afflicted nakshatras, so that's tracked separately from which grahas
+  // are merely transiting through.
+  const natalPointsByNakshatra = {};
+  for (const p of natalChart.planets) {
+    (natalPointsByNakshatra[p.nakshatra] ??= []).push(p.planet);
+  }
+  (natalPointsByNakshatra[natalChart.ascendant.nakshatra] ??= []).push('Ascendant');
 
   const gridLines = [];
   for (let i = 0; i <= SARVATOBHADRA_GRID_SIZE; i++) {
@@ -131,6 +147,7 @@ export default function SarvatobhadraChakra({ natalChart }) {
           const x = col * CELL;
           const y = row * CELL;
           const planets = planetsByNakshatra[nakshatra] ?? [];
+          const natalPoints = natalPointsByNakshatra[nakshatra] ?? [];
           const tags = upagrahasByNakshatra[nakshatra] ?? [];
           return (
             <g key={nakshatra}>
@@ -143,8 +160,13 @@ export default function SarvatobhadraChakra({ natalChart }) {
                   {planets.map((p) => (p.retrograde ? `(${PLANET_ABBR[p.planet]})` : PLANET_ABBR[p.planet])).join(' ')}
                 </text>
               )}
+              {natalPoints.length > 0 && (
+                <text x={x + CELL / 2} y={y + 35} textAnchor="middle" className="sarvatobhadra-natal-label">
+                  N: {natalPoints.map((p) => PLANET_ABBR[p] ?? 'As').join(' ')}
+                </text>
+              )}
               {tags.length > 0 && (
-                <text x={x + CELL / 2} y={y + 35} textAnchor="middle" className="sarvatobhadra-tag-label">
+                <text x={x + CELL / 2} y={y + (natalPoints.length > 0 ? 46 : 35)} textAnchor="middle" className="sarvatobhadra-tag-label">
                   {tags.map((t) => `~${t.tag}`).join(' ')}
                 </text>
               )}
@@ -190,29 +212,52 @@ export default function SarvatobhadraChakra({ natalChart }) {
 
       {pickingCell && <p className="sarvatobhadra-picking-hint">Click any cell in the grid above.</p>}
 
-      {upagrahas.some((u) => planetsByNakshatra[u.nakshatra]) && (
-        <div className="sarvatobhadra-upagraha-list">
-          <p className="sarvatobhadra-upagraha-heading">Active right now:</p>
-          {upagrahas
-            .filter((u) => planetsByNakshatra[u.nakshatra])
-            .map((u) => (
-              <p key={u.tag} className="sarvatobhadra-upagraha-item">
-                <strong>~{u.tag}</strong> ({u.label}) on {u.nakshatra.trim()} — {u.caution}
+      {(() => {
+        const active = upagrahas
+          .map((u) => ({
+            ...u,
+            hitsNatal: natalPointsByNakshatra[u.nakshatra] ?? null,
+            hitsTransit: planetsByNakshatra[u.nakshatra] ?? null,
+          }))
+          .filter((u) => u.hitsNatal || u.hitsTransit)
+          // Natal hits are the personally relevant ones (this chart's own
+          // Ascendant/grahas sitting in an afflicted nakshatra); a bare
+          // transiting graha with no natal connection is the same for
+          // everyone right now, so it's listed after, not first.
+          .sort((a, b) => (b.hitsNatal ? 1 : 0) - (a.hitsNatal ? 1 : 0));
+
+        if (active.length === 0) return null;
+
+        return (
+          <div className="sarvatobhadra-upagraha-list">
+            <p className="sarvatobhadra-upagraha-heading">Active right now:</p>
+            {active.map((u) => (
+              <p key={u.tag} className={u.hitsNatal ? 'sarvatobhadra-upagraha-item sarvatobhadra-upagraha-item-natal' : 'sarvatobhadra-upagraha-item'}>
+                <strong>~{u.tag}</strong> ({u.label}) on {u.nakshatra.trim()}
+                {u.hitsNatal && <> — touches your natal {u.hitsNatal.join(', ')}</>}
+                {u.hitsNatal && u.hitsTransit && <>, and</>}
+                {u.hitsTransit && <> transiting {u.hitsTransit.map((p) => p.planet).join(', ')} is here too</>}
+                {' '}— {u.caution}
               </p>
             ))}
-        </div>
-      )}
+          </div>
+        );
+      })()}
 
       <p className="sarvatobhadra-note">
         Border: the 28 nakshatras (27 plus Abhijit), showing which graha(s) transit each one right now
-        (parentheses = retrograde), plus any active Upagraha dosha tag. Inner diamond: the 12 rashis,
-        with your Lagna highlighted. &quot;Highlight Select&quot; picks any cell and highlights every
-        cell reachable by a chess Queen&apos;s move (full row, column, and both diagonals) from it - a
-        technique some Sarvatobhadra Chakra tools use to spot alignments. The border's starting point,
-        the Upagraha calculation, and the Queen's-move rule were all verified against a reference
-        Sarvatobhadra Chakra spreadsheet; the inner diamond's rashi grouping remains a simplified,
-        teaching-level layout rather than one classical text's exact cell placement, which varies by
-        source.
+        (parentheses = retrograde) and which of your own natal points ("N: ...") sit there, plus any
+        active Upagraha dosha tag. The Upagraha tags themselves are the same for every chart at a given
+        moment - the &quot;Active right now&quot; panel below highlights the ones that actually touch
+        your own natal points as the personally relevant hits, listed ahead of ones only a transiting
+        graha happens to share. Inner diamond: the 12 rashis, with your Lagna highlighted.
+        &quot;Highlight Select&quot; picks any cell and highlights every cell reachable by a chess
+        Queen&apos;s move (full row, column, and both diagonals) from it - defaulting to your Janma
+        Nakshatra (Moon) - a technique some Sarvatobhadra Chakra tools use to spot alignments. The
+        border's starting point, the Upagraha calculation, and the Queen's-move rule were all verified
+        against a reference Sarvatobhadra Chakra spreadsheet; the inner diamond's rashi grouping remains
+        a simplified, teaching-level layout rather than one classical text's exact cell placement, which
+        varies by source.
       </p>
     </div>
   );
