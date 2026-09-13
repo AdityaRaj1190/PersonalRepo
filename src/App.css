@@ -591,6 +591,57 @@ button[type='submit']:disabled {
   color: var(--danger);
 }
 
+.sarvatobhadra-highlight-controls {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin: 0 0 10px;
+}
+
+.sarvatobhadra-highlight-controls button {
+  font: inherit;
+  font-size: 12px;
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.sarvatobhadra-highlight-controls button.active {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
+.sarvatobhadra-picking {
+  cursor: crosshair;
+}
+
+.sarvatobhadra-pick-target {
+  fill: transparent;
+  cursor: crosshair;
+}
+
+.sarvatobhadra-queen-move {
+  fill: #00c2c2;
+  opacity: 0.35;
+}
+
+.sarvatobhadra-selected-cell {
+  fill: #ff00ff;
+  opacity: 0.45;
+}
+
+.sarvatobhadra-picking-hint {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+  text-align: center;
+  margin: 8px 0 0;
+}
+
 .planet-table-wrapper {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;

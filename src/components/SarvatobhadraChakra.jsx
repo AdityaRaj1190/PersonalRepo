@@ -7,6 +7,7 @@ import {
   SARVATOBHADRA_GRID_SIZE,
   SARVATOBHADRA_RASHI_CELLS,
   PLANET_ABBR,
+  sarvatobhadraQueenMoves,
 } from '../lib/chartLayout';
 
 const CELL = 40;
@@ -23,6 +24,19 @@ const SIZE = SARVATOBHADRA_GRID_SIZE * CELL;
 export default function SarvatobhadraChakra({ natalChart }) {
   const [now] = useState(() => new Date());
   const transit = useMemo(() => computeTransitChart(natalChart, now), [natalChart, now]);
+  const [pickingCell, setPickingCell] = useState(false);
+  const [selectedCell, setSelectedCell] = useState(null);
+
+  const queenMoves = useMemo(
+    () => (selectedCell ? sarvatobhadraQueenMoves(selectedCell.row, selectedCell.col) : null),
+    [selectedCell],
+  );
+
+  function handleCellClick(row, col) {
+    if (!pickingCell) return;
+    setSelectedCell({ row, col });
+    setPickingCell(false);
+  }
 
   const planetsByNakshatra = {};
   for (const p of transit.planets) {
@@ -46,7 +60,43 @@ export default function SarvatobhadraChakra({ natalChart }) {
     <div className="sarvatobhadra-wrapper">
       <p className="sarvatobhadra-asof">As of {now.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}</p>
 
-      <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="chart-svg sarvatobhadra-svg" role="img" aria-label="Sarvatobhadra Chakra">
+      <div className="sarvatobhadra-highlight-controls">
+        <button
+          type="button"
+          className={pickingCell ? 'active' : ''}
+          onClick={() => setPickingCell((v) => !v)}
+        >
+          {pickingCell ? 'Click a cell…' : 'Highlight Select'}
+        </button>
+        <button type="button" onClick={() => { setSelectedCell(null); setPickingCell(false); }}>
+          Clear Selection
+        </button>
+      </div>
+
+      <svg
+        viewBox={`0 0 ${SIZE} ${SIZE}`}
+        className={`chart-svg sarvatobhadra-svg${pickingCell ? ' sarvatobhadra-picking' : ''}`}
+        role="img"
+        aria-label="Sarvatobhadra Chakra"
+      >
+        {queenMoves &&
+          [...queenMoves].map((k) => {
+            const [r, c] = k.split(',').map(Number);
+            return (
+              <rect
+                key={`qm-${k}`}
+                x={c * CELL} y={r * CELL} width={CELL} height={CELL}
+                className="sarvatobhadra-queen-move"
+              />
+            );
+          })}
+        {selectedCell && (
+          <rect
+            x={selectedCell.col * CELL} y={selectedCell.row * CELL} width={CELL} height={CELL}
+            className="sarvatobhadra-selected-cell"
+          />
+        )}
+
         {gridLines}
 
         {SARVATOBHADRA_CORNER_CELLS.map(([row, col]) => (
@@ -102,7 +152,23 @@ export default function SarvatobhadraChakra({ natalChart }) {
           width={CELL} height={CELL}
           className="sarvatobhadra-center"
         />
+
+        {pickingCell &&
+          Array.from({ length: SARVATOBHADRA_GRID_SIZE * SARVATOBHADRA_GRID_SIZE }, (_, i) => {
+            const row = Math.floor(i / SARVATOBHADRA_GRID_SIZE);
+            const col = i % SARVATOBHADRA_GRID_SIZE;
+            return (
+              <rect
+                key={`pick-${row}-${col}`}
+                x={col * CELL} y={row * CELL} width={CELL} height={CELL}
+                className="sarvatobhadra-pick-target"
+                onClick={() => handleCellClick(row, col)}
+              />
+            );
+          })}
       </svg>
+
+      {pickingCell && <p className="sarvatobhadra-picking-hint">Click any cell in the grid above.</p>}
 
       {upagrahas.some((u) => planetsByNakshatra[u.nakshatra]) && (
         <div className="sarvatobhadra-upagraha-list">
@@ -120,10 +186,13 @@ export default function SarvatobhadraChakra({ natalChart }) {
       <p className="sarvatobhadra-note">
         Border: the 28 nakshatras (27 plus Abhijit), showing which graha(s) transit each one right now
         (parentheses = retrograde), plus any active Upagraha dosha tag. Inner diamond: the 12 rashis,
-        with your Lagna highlighted. The border's starting point and the Upagraha calculation were
-        verified against a reference Sarvatobhadra Chakra spreadsheet; the inner diamond's rashi
-        grouping remains a simplified, teaching-level layout rather than one classical text's exact
-        cell placement, which varies by source.
+        with your Lagna highlighted. &quot;Highlight Select&quot; picks any cell and highlights every
+        cell reachable by a chess Queen&apos;s move (full row, column, and both diagonals) from it - a
+        technique some Sarvatobhadra Chakra tools use to spot alignments. The border's starting point,
+        the Upagraha calculation, and the Queen's-move rule were all verified against a reference
+        Sarvatobhadra Chakra spreadsheet; the inner diamond's rashi grouping remains a simplified,
+        teaching-level layout rather than one classical text's exact cell placement, which varies by
+        source.
       </p>
     </div>
   );
