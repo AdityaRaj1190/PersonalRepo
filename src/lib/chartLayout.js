@@ -119,3 +119,41 @@ export const SARVATOBHADRA_RASHI_CELLS = SARVATOBHADRA_RASHI_ARMS.flatMap(({ cel
 );
 
 export const SARVATOBHADRA_CENTER_CELL = { row: 4, col: 4 };
+
+/**
+ * Sarvatobhadra Chakra "Highlight Select": treats the 9x9 grid as a chess
+ * board and highlights every cell reachable by a Queen's move (full row,
+ * full column, both diagonals) from a selected cell - a technique the
+ * reference spreadsheet's `HighlightQueenMoves()` macro implements. Ported
+ * directly from that macro rather than guessed from a screenshot: the full
+ * row is skipped if the selection itself sits on the outer border row (row
+ * 0 or 8, 0-indexed here), and likewise the full column is skipped if the
+ * selection sits on the outer border column - the diagonals still apply
+ * either way.
+ * @param {number} row - 0-indexed row of the selected cell
+ * @param {number} col - 0-indexed column of the selected cell
+ * @returns {Set<string>} cell keys ("row,col") reachable by the Queen, excluding the selected cell itself
+ */
+export function sarvatobhadraQueenMoves(row, col) {
+  const last = SARVATOBHADRA_GRID_SIZE - 1;
+  const key = (r, c) => `${r},${c}`;
+  const cells = new Set();
+
+  if (row !== 0 && row !== last) {
+    for (let c = 0; c <= last; c++) cells.add(key(row, c));
+  }
+  if (col !== 0 && col !== last) {
+    for (let r = 0; r <= last; r++) cells.add(key(r, col));
+  }
+  for (let d = -last; d <= last; d++) {
+    if (d === 0) continue;
+    const r = row + d;
+    if (r < 0 || r > last) continue;
+    const c1 = col - d;
+    if (c1 >= 0 && c1 <= last) cells.add(key(r, c1));
+    const c2 = col + d;
+    if (c2 >= 0 && c2 <= last) cells.add(key(r, c2));
+  }
+  cells.delete(key(row, col));
+  return cells;
+}
