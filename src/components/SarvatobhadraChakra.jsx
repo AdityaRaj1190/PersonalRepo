@@ -21,11 +21,25 @@ const SIZE = SARVATOBHADRA_GRID_SIZE * CELL;
  * currently lands there (see computeSbcUpagrahas). The Lagna rashi is
  * highlighted in the inner diamond as a fixed personal reference point.
  */
+const borderCellByNakshatra = SARVATOBHADRA_BORDER_CELLS.reduce((map, c) => {
+  map[c.nakshatra.trim()] = { row: c.row, col: c.col };
+  return map;
+}, {});
+
 export default function SarvatobhadraChakra({ natalChart }) {
   const [now] = useState(() => new Date());
   const transit = useMemo(() => computeTransitChart(natalChart, now), [natalChart, now]);
   const [pickingCell, setPickingCell] = useState(false);
-  const [selectedCell, setSelectedCell] = useState(null);
+  const [manualCell, setManualCell] = useState(null);
+
+  // Personalize by default: the "Queen" starts on this person's own Janma
+  // Nakshatra (natal Moon) - the same personal anchor Tara Bala/Gochara use
+  // elsewhere in the app - rather than an arbitrary fixed cell that would
+  // look identical for every chart until someone manually clicked one.
+  const natalMoonNakshatra = natalChart.planets.find((p) => p.planet === 'Moon').nakshatra;
+  const defaultCell = borderCellByNakshatra[natalMoonNakshatra.trim()] ?? null;
+  const selectedCell = manualCell ?? defaultCell;
+  const isDefaultSelection = !manualCell;
 
   const queenMoves = useMemo(
     () => (selectedCell ? sarvatobhadraQueenMoves(selectedCell.row, selectedCell.col) : null),
@@ -34,7 +48,7 @@ export default function SarvatobhadraChakra({ natalChart }) {
 
   function handleCellClick(row, col) {
     if (!pickingCell) return;
-    setSelectedCell({ row, col });
+    setManualCell({ row, col });
     setPickingCell(false);
   }
 
@@ -68,10 +82,16 @@ export default function SarvatobhadraChakra({ natalChart }) {
         >
           {pickingCell ? 'Click a cell…' : 'Highlight Select'}
         </button>
-        <button type="button" onClick={() => { setSelectedCell(null); setPickingCell(false); }}>
+        <button type="button" onClick={() => { setManualCell(null); setPickingCell(false); }}>
           Clear Selection
         </button>
       </div>
+
+      <p className="sarvatobhadra-selection-label">
+        {isDefaultSelection
+          ? `Showing Queen's-move highlights from your Janma Nakshatra (Moon): ${natalMoonNakshatra.trim()}`
+          : `Showing Queen's-move highlights from a manually selected cell`}
+      </p>
 
       <svg
         viewBox={`0 0 ${SIZE} ${SIZE}`}
