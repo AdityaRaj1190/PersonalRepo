@@ -1,0 +1,130 @@
+import { useMemo, useState } from 'react';
+import { RASHIS, computeSbcUpagrahas, computeTransitChart } from '../lib/astro';
+import {
+  SARVATOBHADRA_BORDER_CELLS,
+  SARVATOBHADRA_CENTER_CELL,
+  SARVATOBHADRA_CORNER_CELLS,
+  SARVATOBHADRA_GRID_SIZE,
+  SARVATOBHADRA_RASHI_CELLS,
+  PLANET_ABBR,
+} from '../lib/chartLayout';
+
+const CELL = 40;
+const SIZE = SARVATOBHADRA_GRID_SIZE * CELL;
+
+/**
+ * The Sarvatobhadra Chakra ("all-auspicious wheel"): a live, transit-based
+ * 9x9 grid - the 28 nakshatras (27 plus Abhijit) ring the border, the 12
+ * rashis fill an inner diamond. Border cells show which graha(s) are
+ * transiting each nakshatra right now, plus any Upagraha dosha tag that
+ * currently lands there (see computeSbcUpagrahas). The Lagna rashi is
+ * highlighted in the inner diamond as a fixed personal reference point.
+ */
+export default function SarvatobhadraChakra({ natalChart }) {
+  const [now] = useState(() => new Date());
+  const transit = useMemo(() => computeTransitChart(natalChart, now), [natalChart, now]);
+
+  const planetsByNakshatra = {};
+  for (const p of transit.planets) {
+    (planetsByNakshatra[p.nakshatra] ??= []).push(p);
+  }
+
+  const transitSun = transit.planets.find((p) => p.planet === 'Sun');
+  const upagrahas = useMemo(() => computeSbcUpagrahas(transitSun.longitude), [transitSun.longitude]);
+  const upagrahasByNakshatra = {};
+  for (const u of upagrahas) {
+    (upagrahasByNakshatra[u.nakshatra] ??= []).push(u);
+  }
+
+  const gridLines = [];
+  for (let i = 0; i <= SARVATOBHADRA_GRID_SIZE; i++) {
+    gridLines.push(<line key={`h${i}`} x1={0} y1={i * CELL} x2={SIZE} y2={i * CELL} className="chart-outline" />);
+    gridLines.push(<line key={`v${i}`} x1={i * CELL} y1={0} x2={i * CELL} y2={SIZE} className="chart-outline" />);
+  }
+
+  return (
+    <div className="sarvatobhadra-wrapper">
+      <p className="sarvatobhadra-asof">As of {now.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}</p>
+
+      <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="chart-svg sarvatobhadra-svg" role="img" aria-label="Sarvatobhadra Chakra">
+        {gridLines}
+
+        {SARVATOBHADRA_CORNER_CELLS.map(([row, col]) => (
+          <rect
+            key={`corner-${row}-${col}`}
+            x={col * CELL} y={row * CELL} width={CELL} height={CELL}
+            className="sarvatobhadra-corner"
+          />
+        ))}
+
+        {SARVATOBHADRA_BORDER_CELLS.map(({ row, col, nakshatra }) => {
+          const x = col * CELL;
+          const y = row * CELL;
+          const planets = planetsByNakshatra[nakshatra] ?? [];
+          const tags = upagrahasByNakshatra[nakshatra] ?? [];
+          return (
+            <g key={nakshatra}>
+              {tags.length > 0 && <rect x={x} y={y} width={CELL} height={CELL} className="sarvatobhadra-upagraha" />}
+              <text x={x + CELL / 2} y={y + 12} textAnchor="middle" className="sarvatobhadra-nakshatra-label">
+                {nakshatra.slice(0, 4)}
+              </text>
+              {planets.length > 0 && (
+                <text x={x + CELL / 2} y={y + 24} textAnchor="middle" className="chart-planet">
+                  {planets.map((p) => (p.retrograde ? `(${PLANET_ABBR[p.planet]})` : PLANET_ABBR[p.planet])).join(' ')}
+                </text>
+              )}
+              {tags.length > 0 && (
+                <text x={x + CELL / 2} y={y + 35} textAnchor="middle" className="sarvatobhadra-tag-label">
+                  {tags.map((t) => `~${t.tag}`).join(' ')}
+                </text>
+              )}
+            </g>
+          );
+        })}
+
+        {SARVATOBHADRA_RASHI_CELLS.map(({ row, col, rashi }) => {
+          const x = col * CELL;
+          const y = row * CELL;
+          const isAscendant = rashi === natalChart.ascendant.rashi;
+          return (
+            <g key={rashi}>
+              {isAscendant && <rect x={x} y={y} width={CELL} height={CELL} className="sarvatobhadra-lagna" />}
+              <text x={x + CELL / 2} y={y + CELL / 2 + 4} textAnchor="middle" className="sarvatobhadra-rashi-label">
+                {RASHIS[rashi].slice(0, 3)}
+              </text>
+            </g>
+          );
+        })}
+
+        <rect
+          x={SARVATOBHADRA_CENTER_CELL.col * CELL}
+          y={SARVATOBHADRA_CENTER_CELL.row * CELL}
+          width={CELL} height={CELL}
+          className="sarvatobhadra-center"
+        />
+      </svg>
+
+      {upagrahas.some((u) => planetsByNakshatra[u.nakshatra]) && (
+        <div className="sarvatobhadra-upagraha-list">
+          <p className="sarvatobhadra-upagraha-heading">Active right now:</p>
+          {upagrahas
+            .filter((u) => planetsByNakshatra[u.nakshatra])
+            .map((u) => (
+              <p key={u.tag} className="sarvatobhadra-upagraha-item">
+                <strong>~{u.tag}</strong> ({u.label}) on {u.nakshatra.trim()} — {u.caution}
+              </p>
+            ))}
+        </div>
+      )}
+
+      <p className="sarvatobhadra-note">
+        Border: the 28 nakshatras (27 plus Abhijit), showing which graha(s) transit each one right now
+        (parentheses = retrograde), plus any active Upagraha dosha tag. Inner diamond: the 12 rashis,
+        with your Lagna highlighted. The border's starting point and the Upagraha calculation were
+        verified against a reference Sarvatobhadra Chakra spreadsheet; the inner diamond's rashi
+        grouping remains a simplified, teaching-level layout rather than one classical text's exact
+        cell placement, which varies by source.
+      </p>
+    </div>
+  );
+}

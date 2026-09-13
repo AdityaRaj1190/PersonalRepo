@@ -1222,3 +1222,78 @@ export function gocharaSnapshotForDashaLord(natalChart, lord, date) {
   const transit = computeTransitChart(natalChart, date);
   return transit.planets.find((p) => p.planet === lord);
 }
+
+/**
+ * Sarvatobhadra Chakra "Upagraha" doshas: eight shadow-points, each a fixed
+ * nakshatra-count ahead of the transiting Sun (5, 8, 14, 18, 21, 22, 23, 24
+ * stars ahead, wrapping through the 27-nakshatra cycle - Abhijit isn't part
+ * of this count). Whichever nakshatra an Upagraha lands on is classically
+ * flagged with that Upagraha's name in the Sarvatobhadra Chakra's border.
+ * The offsets and the formula - (sunNakshatraIndex + offset - 1) mod 27 -
+ * were verified against a reference Sarvatobhadra Chakra spreadsheet's own
+ * lookup table rather than reconstructed from memory, since sources vary on
+ * this system and getting it wrong would misrepresent it as authoritative.
+ */
+export const SBC_UPAGRAHAS = [
+  {
+    offset: 5,
+    tag: 'vidyut-mukh',
+    label: 'Vidyunmukha',
+    caution: "Classically read as sudden, lightning-like disruption - don't let a fast-moving decision here catch you off guard.",
+  },
+  {
+    offset: 8,
+    tag: 'shoola',
+    label: 'Shoola',
+    caution: 'A piercing, low-grade friction - minor irritations and things not quite going smoothly, more than one dramatic event.',
+  },
+  {
+    offset: 14,
+    tag: 'sannipat',
+    label: 'Sannipata',
+    caution: 'A "coming together" of stress from multiple directions at once - a good stretch to simplify rather than juggle more.',
+  },
+  {
+    offset: 18,
+    tag: 'ketu',
+    label: 'Ketu Upagraha',
+    caution: 'Themes of detachment or things quietly slipping away - worth double-checking commitments you care about keeping.',
+  },
+  {
+    offset: 21,
+    tag: 'ulka',
+    label: 'Ulka',
+    caution: 'An abrupt, meteor-like disruption - financial or material setbacks are the classical concern, so avoid big new risk here.',
+  },
+  {
+    offset: 22,
+    tag: 'kampa',
+    label: 'Kampa',
+    caution: 'A "trembling" instability - relationships or routines feeling unsettled rather than any one clear problem.',
+  },
+  {
+    offset: 23,
+    tag: 'bajra',
+    label: 'Vajra',
+    caution: 'A sharp, sudden setback, especially around career or standing - move deliberately rather than reactively.',
+  },
+  {
+    offset: 24,
+    tag: 'nirgat',
+    label: 'Nirgata',
+    caution: 'An "exit/departure" theme - loss or separation, often tied to impulsive words or actions rather than external events.',
+  },
+];
+
+/**
+ * Compute where each of the eight Upagraha shadow-points currently falls,
+ * given the transiting Sun's sidereal longitude.
+ * @param {number} transitSunSidereal - transiting Sun's sidereal longitude, in degrees
+ */
+export function computeSbcUpagrahas(transitSunSidereal) {
+  const sunIndex = nakshatraOf(transitSunSidereal).index; // 0-based, 0..26 (27-star system)
+  return SBC_UPAGRAHAS.map((u) => ({
+    ...u,
+    nakshatra: NAKSHATRAS[(((sunIndex + u.offset - 1) % 27) + 27) % 27],
+  }));
+}

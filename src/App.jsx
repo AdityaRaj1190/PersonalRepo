@@ -4,6 +4,7 @@ import BirthSummary from './components/BirthSummary';
 import ChartDisplay from './components/ChartDisplay';
 import DashaPanel from './components/DashaPanel';
 import PlanetTable from './components/PlanetTable';
+import SarvatobhadraChakra from './components/SarvatobhadraChakra';
 import TransitPanel from './components/TransitPanel';
 import { computeBirthChart, computeDivisionalChart } from './lib/astro';
 import { localToUtc } from './lib/geocode';
@@ -13,6 +14,7 @@ const MAIN_TABS = [
   { id: 'chart', label: 'Chart Details' },
   { id: 'transits', label: 'Current Transits' },
   { id: 'dasha', label: 'Dasha Periods' },
+  { id: 'sarvatobhadra', label: 'Sarvatobhadra Chakra' },
 ];
 
 const VARGAS = [
@@ -43,7 +45,6 @@ export default function App() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [varga, setVarga] = useState(1);
-  const [showD1, setShowD1] = useState(false);
   const [mainTab, setMainTab] = useState('transits');
 
   const displayedChart = useMemo(() => {
@@ -53,15 +54,15 @@ export default function App() {
 
   const chartPanels = useMemo(() => {
     if (!result) return [];
-    const vargaLabel = VARGAS.find((v) => v.id === varga).label;
-    if (showD1 && varga !== 1) {
+    if (varga !== 1) {
+      const vargaLabel = VARGAS.find((v) => v.id === varga).label;
       return [
         { chart: result.chart, title: 'D1 · Rashi' },
         { chart: displayedChart, title: vargaLabel },
       ];
     }
     return [{ chart: displayedChart }];
-  }, [result, displayedChart, varga, showD1]);
+  }, [result, displayedChart, varga]);
 
   function handleSubmit({ name, location, local }) {
     setError('');
@@ -141,18 +142,6 @@ export default function App() {
                   {VARGAS.find((v) => v.id === varga).description}
                 </p>
 
-                {varga !== 1 && (
-                  <div className="show-d1-toggle">
-                    <input
-                      id="show-d1"
-                      type="checkbox"
-                      checked={showD1}
-                      onChange={(e) => setShowD1(e.target.checked)}
-                    />
-                    <span>Compare with D1</span>
-                  </div>
-                )}
-
                 <ChartDisplay panels={chartPanels} />
                 <PlanetTable chart={displayedChart} />
               </div>
@@ -167,6 +156,12 @@ export default function App() {
             {mainTab === 'dasha' && (
               <div className="main-tabpanel">
                 <DashaPanel natalChart={result.chart} birthUtcDate={result.utcDate} />
+              </div>
+            )}
+
+            {mainTab === 'sarvatobhadra' && (
+              <div className="main-tabpanel">
+                <SarvatobhadraChakra natalChart={result.chart} />
               </div>
             )}
           </section>
