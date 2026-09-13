@@ -67,10 +67,13 @@ export const SOUTH_INDIAN_RASHI_CELLS = {
  * Sarvatobhadra Chakra: a 9x9 grid whose 28-cell outer border holds the 27
  * nakshatras plus Abhijit (inserted between Uttara Ashadha and Shravana, its
  * classical position), and whose inner diamond (the two diagonals of the
- * inner 7x7, minus the shared center cell) holds the 12 rashis. This is a
- * simplified, teaching-level layout (sequential border order, rashis grouped
- * in four 3-sign arms) rather than a reproduction of any one classical
- * text's exact cell-by-cell placement, which varies by source.
+ * inner 7x7, minus the shared center cell) holds the 12 rashis. The border's
+ * starting point (Krittika, not Ashwini) and traversal direction were
+ * verified against a reference Sarvatobhadra Chakra spreadsheet rather than
+ * assumed. The inner diamond's rashi grouping is still a simplified,
+ * teaching-level layout (rashis grouped in four 3-sign arms) rather than a
+ * reproduction of any one classical text's exact cell-by-cell placement,
+ * which varies by source.
  */
 export const SARVATOBHADRA_GRID_SIZE = 9;
 
@@ -80,6 +83,10 @@ export const SARVATOBHADRA_BORDER_NAKSHATRAS = [
   'Swati', 'Vishakha', 'Anuradha', 'Jyeshtha', 'Mula', 'Purva Ashadha', 'Uttara Ashadha',
   'Abhijit', 'Shravana', 'Dhanishta', 'Shatabhisha', 'Purva Bhadrapada', 'Uttara Bhadrapada', 'Revati',
 ];
+
+// The verified reference layout starts its border traversal at Krittika
+// (index 2 of the list above), not Ashwini.
+const SARVATOBHADRA_BORDER_START_INDEX = 2;
 
 function sarvatobhadraBorderPath() {
   const cells = [];
@@ -91,7 +98,9 @@ function sarvatobhadraBorderPath() {
 }
 
 export const SARVATOBHADRA_BORDER_CELLS = sarvatobhadraBorderPath().map(([row, col], i) => ({
-  row, col, nakshatra: SARVATOBHADRA_BORDER_NAKSHATRAS[i],
+  row,
+  col,
+  nakshatra: SARVATOBHADRA_BORDER_NAKSHATRAS[(i + SARVATOBHADRA_BORDER_START_INDEX) % 28],
 }));
 
 export const SARVATOBHADRA_CORNER_CELLS = [[0, 0], [0, 8], [8, 8], [8, 0]];

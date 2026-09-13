@@ -1,4 +1,5 @@
-import { RASHIS } from '../lib/astro';
+import { useMemo, useState } from 'react';
+import { RASHIS, computeSbcUpagrahas, computeTransitChart } from '../lib/astro';
 import {
   SARVATOBHADRA_BORDER_CELLS,
   SARVATOBHADRA_CENTER_CELL,
@@ -12,18 +13,28 @@ const CELL = 40;
 const SIZE = SARVATOBHADRA_GRID_SIZE * CELL;
 
 /**
- * The Sarvatobhadra Chakra ("all-auspicious wheel"): a 9x9 grid with the 28
- * nakshatras (27 plus Abhijit) ringing the border and the 12 rashis set in
- * an inner diamond. Overlays the natal chart's grahas onto their birth
- * nakshatra cell and highlights the Janma (Moon) nakshatra and the Lagna
- * rashi, so the static layout doubles as a read of this particular chart.
+ * The Sarvatobhadra Chakra ("all-auspicious wheel"): a live, transit-based
+ * 9x9 grid - the 28 nakshatras (27 plus Abhijit) ring the border, the 12
+ * rashis fill an inner diamond. Border cells show which graha(s) are
+ * transiting each nakshatra right now, plus any Upagraha dosha tag that
+ * currently lands there (see computeSbcUpagrahas). The Lagna rashi is
+ * highlighted in the inner diamond as a fixed personal reference point.
  */
 export default function SarvatobhadraChakra({ natalChart }) {
+  const [now] = useState(() => new Date());
+  const transit = useMemo(() => computeTransitChart(natalChart, now), [natalChart, now]);
+
   const planetsByNakshatra = {};
-  for (const p of natalChart.planets) {
-    (planetsByNakshatra[p.nakshatra] ??= []).push(p.planet);
+  for (const p of transit.planets) {
+    (planetsByNakshatra[p.nakshatra] ??= []).push(p);
   }
-  const janmaNakshatra = natalChart.planets.find((p) => p.planet === 'Moon').nakshatra;
+
+  const transitSun = transit.planets.find((p) => p.planet === 'Sun');
+  const upagrahas = useMemo(() => computeSbcUpagrahas(transitSun.longitude), [transitSun.longitude]);
+  const upagrahasByNakshatra = {};
+  for (const u of upagrahas) {
+    (upagrahasByNakshatra[u.nakshatra] ??= []).push(u);
+  }
 
   const gridLines = [];
   for (let i = 0; i <= SARVATOBHADRA_GRID_SIZE; i++) {
@@ -33,6 +44,8 @@ export default function SarvatobhadraChakra({ natalChart }) {
 
   return (
     <div className="sarvatobhadra-wrapper">
+      <p className="sarvatobhadra-asof">As of {now.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}</p>
+
       <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="chart-svg sarvatobhadra-svg" role="img" aria-label="Sarvatobhadra Chakra">
         {gridLines}
 
@@ -48,16 +61,21 @@ export default function SarvatobhadraChakra({ natalChart }) {
           const x = col * CELL;
           const y = row * CELL;
           const planets = planetsByNakshatra[nakshatra] ?? [];
-          const isJanma = nakshatra === janmaNakshatra;
+          const tags = upagrahasByNakshatra[nakshatra] ?? [];
           return (
             <g key={nakshatra}>
-              {isJanma && <rect x={x} y={y} width={CELL} height={CELL} className="sarvatobhadra-janma" />}
-              <text x={x + CELL / 2} y={y + 13} textAnchor="middle" className="sarvatobhadra-nakshatra-label">
+              {tags.length > 0 && <rect x={x} y={y} width={CELL} height={CELL} className="sarvatobhadra-upagraha" />}
+              <text x={x + CELL / 2} y={y + 12} textAnchor="middle" className="sarvatobhadra-nakshatra-label">
                 {nakshatra.slice(0, 4)}
               </text>
               {planets.length > 0 && (
-                <text x={x + CELL / 2} y={y + 30} textAnchor="middle" className="chart-planet">
-                  {planets.map((p) => PLANET_ABBR[p]).join(' ')}
+                <text x={x + CELL / 2} y={y + 24} textAnchor="middle" className="chart-planet">
+                  {planets.map((p) => (p.retrograde ? `(${PLANET_ABBR[p.planet]})` : PLANET_ABBR[p.planet])).join(' ')}
+                </text>
+              )}
+              {tags.length > 0 && (
+                <text x={x + CELL / 2} y={y + 35} textAnchor="middle" className="sarvatobhadra-tag-label">
+                  {tags.map((t) => `~${t.tag}`).join(' ')}
                 </text>
               )}
             </g>
@@ -86,10 +104,25 @@ export default function SarvatobhadraChakra({ natalChart }) {
         />
       </svg>
 
+      {upagrahas.some((u) => planetsByNakshatra[u.nakshatra]) && (
+        <div className="sarvatobhadra-upagraha-list">
+          <p className="sarvatobhadra-upagraha-heading">Active right now:</p>
+          {upagrahas
+            .filter((u) => planetsByNakshatra[u.nakshatra])
+            .map((u) => (
+              <p key={u.tag} className="sarvatobhadra-upagraha-item">
+                <strong>~{u.tag}</strong> ({u.label}) on {u.nakshatra.trim()} — {u.caution}
+              </p>
+            ))}
+        </div>
+      )}
+
       <p className="sarvatobhadra-note">
-        Border: the 28 nakshatras (27 plus Abhijit), with your Janma (Moon) nakshatra highlighted.
-        Inner diamond: the 12 rashis, with your Lagna highlighted. This is a simplified,
-        teaching-level layout rather than a reproduction of any one classical text's exact
+        Border: the 28 nakshatras (27 plus Abhijit), showing which graha(s) transit each one right now
+        (parentheses = retrograde), plus any active Upagraha dosha tag. Inner diamond: the 12 rashis,
+        with your Lagna highlighted. The border's starting point and the Upagraha calculation were
+        verified against a reference Sarvatobhadra Chakra spreadsheet; the inner diamond's rashi
+        grouping remains a simplified, teaching-level layout rather than one classical text's exact
         cell placement, which varies by source.
       </p>
     </div>

@@ -532,9 +532,9 @@ button[type='submit']:disabled {
   opacity: 0.4;
 }
 
-.sarvatobhadra-janma {
-  fill: var(--accent);
-  opacity: 0.25;
+.sarvatobhadra-upagraha {
+  fill: var(--danger);
+  opacity: 0.18;
 }
 
 .sarvatobhadra-lagna {
@@ -564,6 +564,44 @@ button[type='submit']:disabled {
   color: var(--text);
   opacity: 0.8;
   margin: 12px 0 0;
+}
+
+.sarvatobhadra-asof {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-h);
+  text-align: center;
+  margin: 0 0 8px;
+}
+
+.sarvatobhadra-tag-label {
+  font-size: 6.5px;
+  fill: var(--danger);
+  font-weight: 600;
+}
+
+.sarvatobhadra-upagraha-list {
+  margin: 14px 0 0;
+  padding: 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.sarvatobhadra-upagraha-heading {
+  font-weight: 700;
+  color: var(--text-h);
+  margin: 0 0 6px;
+}
+
+.sarvatobhadra-upagraha-item {
+  margin: 4px 0;
+  color: var(--text);
+}
+
+.sarvatobhadra-upagraha-item strong {
+  color: var(--danger);
 }
 
 .planet-table-wrapper {
