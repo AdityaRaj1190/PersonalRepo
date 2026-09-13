@@ -376,19 +376,6 @@ button[type='submit']:disabled {
   margin: 0 0 16px;
 }
 
-.show-d1-toggle {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  color: var(--text-h);
-  margin: 0 0 16px;
-}
-
-.show-d1-toggle input {
-  cursor: pointer;
-}
-
 .chart-panels {
   display: flex;
   flex-wrap: wrap;
