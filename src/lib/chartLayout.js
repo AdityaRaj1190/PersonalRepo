@@ -21,6 +21,7 @@ export const VARGA_NAMES = {
   2: 'Hora',
   3: 'Drekkana',
   9: 'Navamsa',
+  10: 'Dashamsha',
 };
 
 export const PLANET_ABBR = {

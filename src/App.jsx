@@ -38,6 +38,11 @@ const VARGAS = [
     label: 'D9 · Navamsa',
     description: "Marriage and one's inner dharma - splits each sign into nine parts; traditionally read alongside D1 to confirm a planet's true strength.",
   },
+  {
+    id: 10,
+    label: 'D10 · Dashamsha',
+    description: 'Career and public standing - splits each sign into ten 3-degree parts, counted from the sign itself for odd signs and from its 9th for even signs.',
+  },
 ];
 
 export default function App() {
