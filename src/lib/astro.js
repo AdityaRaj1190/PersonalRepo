@@ -1111,6 +1111,175 @@ export function computeDivisionalChart(chart, varga) {
 }
 
 /**
+ * Career themes each graha carries into the Dashamsha, and what each D10
+ * house governs in a working life. D10 is read purely as the career varga,
+ * so both tables are deliberately work-flavoured rather than reusing the
+ * general-purpose PLANET_THEME, which is written for whole-life transits.
+ */
+const D10_PLANET_CAREER = {
+  Sun: 'leadership, authority and roles with a visible chain of command',
+  Moon: 'public contact, care work and anything that moves with people’s moods',
+  Mars: 'engineering, surgery, defence and work that rewards decisive force',
+  Mercury: 'communication, analysis, trade and anything numerate',
+  Jupiter: 'teaching, advisory work, law and finance',
+  Venus: 'design, the arts, luxury and relationship-led work',
+  Saturn: 'structure, labour, long institutions and slowly built mastery',
+  Rahu: 'technology, foreign connections and unconventional paths',
+  Ketu: 'research, niche specialisation and work done away from the crowd',
+};
+
+const D10_HOUSE_MEANING = {
+  1: 'your working identity and how you come across professionally',
+  2: 'what the work earns and the resources it builds up',
+  3: 'initiative, hands-on skill and the effort you put in yourself',
+  4: 'qualifications, your base of operations and comfort at work',
+  5: 'creative and advisory work, and recognition for your own ideas',
+  6: 'service, competition and the daily grind of the job',
+  7: 'partnerships, clients and dealings with the public',
+  8: 'research, upheaval and work funded by other people',
+  9: 'mentors, ethics and long-range fortune in the career',
+  10: 'the career itself, your status and public standing',
+  11: 'gains, networks and the rewards that actually arrive',
+  12: 'work behind the scenes, and foreign or institutional settings',
+};
+
+const KENDRA_HOUSES = [1, 4, 7, 10];
+const TRIKONA_HOUSES = [1, 5, 9];
+const DUSTHANA_HOUSES = [6, 8, 12];
+const UPACHAYA_HOUSES = [3, 6, 10, 11];
+const D10_MALEFICS = new Set(['Sun', 'Mars', 'Saturn', 'Rahu', 'Ketu']);
+/** Most placements a single reading list will show before it stops. */
+const D10_MAX_LISTED = 4;
+
+/**
+ * Classify one D10 placement as supportive, needing effort, or neither.
+ * The rules are applied in priority order rather than additively, because
+ * they genuinely conflict: the 6th is both a dusthana and an upachaya, and
+ * a debilitated graha in a kendra is not a well-placed graha.
+ */
+function dashamshaPlacement(p) {
+  // Debilitation outranks a good house - an angle gives such a planet more
+  // room to act, not more ability to act well.
+  if (p.debilitated) {
+    const reasons = ['Debilitated'];
+    if (DUSTHANA_HOUSES.includes(p.house)) reasons.push('Difficult house');
+    return { verdict: 'needsEffort', reasons };
+  }
+
+  const reasons = [];
+  if (D10_MALEFICS.has(p.planet) && UPACHAYA_HOUSES.includes(p.house)) {
+    // Malefics classically grow into the upachaya houses, so a malefic in
+    // the 6th reads as supportive rather than as a dusthana placement.
+    reasons.push('Upachaya – a malefic grows stronger here');
+  } else if (DUSTHANA_HOUSES.includes(p.house)) {
+    return { verdict: 'needsEffort', reasons: ['Difficult house'] };
+  }
+
+  if (p.exalted) reasons.push('Exalted');
+  if (RASHI_LORDS[p.rashi] === p.planet) reasons.push('Own sign');
+  const kendra = KENDRA_HOUSES.includes(p.house);
+  const trikona = TRIKONA_HOUSES.includes(p.house);
+  if (kendra && trikona) reasons.push('Kendra and trikona');
+  else if (kendra) reasons.push('Kendra – an angle of the chart');
+  else if (trikona) reasons.push('Trikona – a trine of the chart');
+  if (p.vargottama) reasons.push('Vargottama');
+
+  return { verdict: reasons.length > 0 ? 'supportive' : 'neutral', reasons };
+}
+
+/**
+ * How much each classification reason actually says about a placement.
+ * Sitting in a kendra is true of a third of all placements, so on its own
+ * it is a weak signal; a dignity (exaltation, own sign, vargottama) is a
+ * strong one. Scoring lets the reading lead with what stands out instead
+ * of listing most of the chart.
+ */
+const D10_REASON_WEIGHT = {
+  Exalted: 3,
+  Debilitated: 3,
+  'Own sign': 2,
+  Vargottama: 2,
+  'Kendra and trikona': 2,
+  'Difficult house': 2,
+};
+
+/** Reasons not in the table above are weak, single-point signals. */
+function dashamshaScore(reasons) {
+  return reasons.reduce((total, r) => total + (D10_REASON_WEIGHT[r] ?? 1), 0);
+}
+
+function dashamshaEntry(p) {
+  const { verdict, reasons } = dashamshaPlacement(p);
+  return {
+    planet: p.planet,
+    house: p.house,
+    rashiName: p.rashiName,
+    verdict,
+    reasons,
+    houseLabel: `${ordinal(p.house)} house (${p.rashiName})`,
+    headline: `${p.planet} in the ${ordinal(p.house)} house (${p.rashiName})`,
+    detail: `Brings ${D10_PLANET_CAREER[p.planet]} to ${D10_HOUSE_MEANING[p.house]}.`,
+    score: dashamshaScore(reasons),
+    strength: p.strength.total,
+  };
+}
+
+const D10_VERDICT_LABELS = {
+  supportive: 'Well placed',
+  needsEffort: 'Under pressure',
+  neutral: 'Neither helped nor hindered',
+};
+
+/**
+ * Read a D10 (Dashamsha) chart for what supports the career and what has
+ * to be worked for. The two lords called out first are the standard
+ * starting points for a career reading: the D10 ascendant lord (how the
+ * person operates professionally) and the lord of the D10's own 10th
+ * house (the career itself). Grahas that land in neither list are left
+ * out rather than listed as "neutral" - a reading is only useful if it
+ * points somewhere.
+ * @param {ReturnType<typeof computeDivisionalChart>} d10 - a D10 chart
+ */
+export function computeDashamshaReading(d10) {
+  // Rank on how much each placement says (score), falling back to the
+  // chart's own strength figure only to break ties.
+  const byNotability = (a, b) => b.score - a.score || b.strength - a.strength;
+  const entries = d10.planets.map(dashamshaEntry);
+  const allSupportive = entries.filter((e) => e.verdict === 'supportive').sort(byNotability);
+  const needsEffort = entries.filter((e) => e.verdict === 'needsEffort').sort(byNotability);
+  // A kendra or trikona placement alone is common enough that listing every
+  // one buries the placements that matter, so only the clearest are shown.
+  const supportive = allSupportive.slice(0, D10_MAX_LISTED);
+  const alsoSupportiveCount = allSupportive.length - supportive.length;
+
+  function lordPointer(rashi, role, roleDetail) {
+    const lord = RASHI_LORDS[rashi];
+    const entry = entries.find((e) => e.planet === lord);
+    return { ...entry, role, roleDetail, lord, verdictLabel: D10_VERDICT_LABELS[entry.verdict] };
+  }
+
+  const tenthRashi = (d10.ascendant.rashi + 9) % 12;
+  const pointers = [
+    lordPointer(d10.ascendant.rashi, 'D10 ascendant lord', 'how you operate professionally'),
+    lordPointer(tenthRashi, 'D10 tenth lord', 'the career itself and your standing in it'),
+  ];
+
+  const best = allSupportive[0];
+  const summary = best
+    ? `${best.planet} is the best-placed graha in this D10, so ${D10_PLANET_CAREER[best.planet]} is where the chart gives the most support.`
+    : 'No graha stands out as strongly placed in this D10, so career results come from steady effort rather than from one obvious strength.';
+
+  return {
+    ascendantRashiName: d10.ascendant.rashiName,
+    pointers,
+    supportive,
+    alsoSupportiveCount,
+    needsEffort,
+    summary,
+  };
+}
+
+/**
  * Vimshottari Dasha: the standard Parashari planetary-period system, a
  * fixed 120-year cycle split among the 9 grahas (Ketu 7, Venus 20, Sun 6,
  * Moon 10, Mars 7, Rahu 18, Jupiter 16, Saturn 19, Mercury 17), always in
