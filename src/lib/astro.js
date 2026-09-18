@@ -312,6 +312,9 @@ export function computeBirthChart(utcDate, latitude, longitude) {
  * - D9 (Navamsa): each sign's nine 3°20' parts map onto a run of 9 signs
  *   starting at the sign itself (movable), its 9th (fixed), or its 5th
  *   (dual) - equivalent to the closed-form (rashi*9 + part) % 12 used here.
+ * - D10 (Dashamsha): each sign's ten 3° parts map onto a run of 10 signs
+ *   starting at the sign itself for odd signs, or at its 9th for even
+ *   signs.
  */
 function vargaRashi(rashi, degreeInRashi, varga) {
   if (varga === 2) {
@@ -327,6 +330,13 @@ function vargaRashi(rashi, degreeInRashi, varga) {
   if (varga === 9) {
     const part = Math.floor(degreeInRashi / (10 / 3));
     return (rashi * 9 + part) % 12;
+  }
+  if (varga === 10) {
+    const part = Math.floor(degreeInRashi / 3);
+    // Odd signs (Aries, Gemini, ... - even rashi indices) count from the
+    // sign itself; even signs count from the 9th sign from it.
+    const start = rashi % 2 === 0 ? rashi : rashi + 8;
+    return (start + part) % 12;
   }
   throw new Error(`Unsupported varga: D${varga}`);
 }
@@ -1062,7 +1072,7 @@ export function computeExactAspects(natalChart, fromDate) {
  * is carried over from D1 since those describe the planet's motion, not
  * its sign placement.
  * @param {ReturnType<typeof computeBirthChart>} chart - a D1 chart
- * @param {2|3|9} varga - which divisional chart to derive
+ * @param {2|3|9|10} varga - which divisional chart to derive
  */
 export function computeDivisionalChart(chart, varga) {
   const ascendantRashi = vargaRashi(chart.ascendant.rashi, chart.ascendant.degreeInRashi, varga);
