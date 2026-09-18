@@ -1128,3 +1128,139 @@ button[type='submit']:disabled {
 .sarvatobhadra-gochara-blocker {
   fill: #a16207;
 }
+
+.dashamsha-reading {
+  margin: 24px 0 0;
+  padding: 16px 18px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg-alt);
+}
+
+.dashamsha-reading h3 {
+  margin: 0 0 8px;
+  font-size: 16px;
+  color: var(--text-h);
+}
+
+.dashamsha-summary {
+  margin: 0 0 16px;
+  font-size: 14px;
+  max-width: 620px;
+}
+
+.dashamsha-pointers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.dashamsha-pointer {
+  flex: 1 1 260px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+  padding: 10px 12px;
+}
+
+.dashamsha-pointer-role {
+  margin: 0 0 4px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+}
+
+.dashamsha-pointer-body {
+  margin: 0 0 4px;
+  font-size: 14px;
+  color: var(--text-h);
+}
+
+.dashamsha-lists {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+}
+
+.dashamsha-list {
+  flex: 1 1 280px;
+}
+
+.dashamsha-list-title {
+  margin: 0 0 8px;
+  font-size: 14px;
+}
+
+.dashamsha-list ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.dashamsha-entry-headline {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.dashamsha-entry-reasons {
+  margin: 3px 0;
+}
+
+.dashamsha-chip {
+  display: inline-block;
+  margin-right: 4px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.dashamsha-entry-detail {
+  margin: 0;
+  font-size: 13px;
+}
+
+.dashamsha-empty,
+.dashamsha-footnote {
+  margin: 0;
+  font-size: 13px;
+  font-style: italic;
+}
+
+.dashamsha-footnote {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.dashamsha-pointer-verdict {
+  margin: 0 0 4px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.dashamsha-tone-favorable,
+.dashamsha-tone-supportive {
+  color: var(--exalted);
+}
+
+.dashamsha-tone-neutral {
+  color: var(--text);
+}
+
+.dashamsha-tone-needsEffort {
+  color: var(--debilitated);
+}
+
+.dashamsha-tone-challenging {
+  color: var(--danger);
+}

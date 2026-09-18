@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import BirthChartForm from './components/BirthChartForm';
 import BirthSummary from './components/BirthSummary';
 import ChartDisplay from './components/ChartDisplay';
+import DashamshaReading from './components/DashamshaReading';
 import DashaPanel from './components/DashaPanel';
 import PlanetTable from './components/PlanetTable';
 import SarvatobhadraChakra from './components/SarvatobhadraChakra';
@@ -149,6 +150,7 @@ export default function App() {
 
                 <ChartDisplay panels={chartPanels} />
                 <PlanetTable chart={displayedChart} />
+                {varga === 10 && <DashamshaReading chart={displayedChart} />}
               </div>
             )}
 
