@@ -157,3 +157,67 @@ export function sarvatobhadraQueenMoves(row, col) {
   cells.delete(key(row, col));
   return cells;
 }
+
+/**
+ * Sarvatobhadra Chakra nakshatra vedha ("piercing") rays. A graha sitting in
+ * a border nakshatra is classically said to pierce three directions at once:
+ * straight across the chakra ("front"), and the two 45-degree diagonals to
+ * its left and right. Every occupied cell those three rays pass through is
+ * pierced - other nakshatras on the far border, and the rashis of the inner
+ * diamond.
+ *
+ * The rays are cast inward from whichever edge the cell sits on, so the
+ * inward direction is derived from the cell's own position rather than
+ * hardcoded per edge.
+ *
+ * Verified against the two worked examples published for this system:
+ * Krittika pierces Bharani, Shravana and Vishakha, and Rohini pierces
+ * Ashwini, Abhijit and Swati - both reproduce exactly. (Those sources also
+ * name rashis for each example; ours differ by one arm position, because
+ * this chakra's inner diamond follows the reference spreadsheet's rashi
+ * grouping rather than theirs. Sources disagree on that placement, so the
+ * nakshatra-level result is the part to trust here.)
+ *
+ * Not modelled: the motion-based variants some texts add, where a graha in
+ * fast motion pierces left and a retrograde one pierces backward instead of
+ * front. Sources vary on those and they would change which cells are hit,
+ * so this keeps the single, commonly-taught three-ray rule.
+ *
+ * @param {number} row - 0-indexed row of the piercing graha's border cell
+ * @param {number} col - 0-indexed column of that cell
+ * @returns {Set<string>} cell keys ("row,col") the three rays pass through
+ */
+export function sarvatobhadraVedhaCells(row, col) {
+  const last = SARVATOBHADRA_GRID_SIZE - 1;
+  const cells = new Set();
+
+  // Inward-pointing unit vector for the edge this cell sits on.
+  let dr = 0;
+  let dc = 0;
+  if (row === 0) dr = 1;
+  else if (row === last) dr = -1;
+  else if (col === 0) dc = 1;
+  else if (col === last) dc = -1;
+  else return cells; // not a border cell: nothing to cast
+
+  // The front ray plus its two 45-degree neighbours. Rotating the inward
+  // vector by -45 and +45 degrees on the grid is just adding the
+  // perpendicular component to it.
+  const rays = [
+    [dr, dc],
+    [dr + dc, dc + dr],
+    [dr - dc, dc - dr],
+  ];
+
+  for (const [sr, sc] of rays) {
+    if (sr === 0 && sc === 0) continue;
+    let r = row + sr;
+    let c = col + sc;
+    while (r >= 0 && r <= last && c >= 0 && c <= last) {
+      cells.add(`${r},${c}`);
+      r += sr;
+      c += sc;
+    }
+  }
+  return cells;
+}
