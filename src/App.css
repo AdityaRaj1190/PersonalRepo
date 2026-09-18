@@ -1069,3 +1069,62 @@ button[type='submit']:disabled {
   width: calc(100% - 20px);
   font-size: 13px;
 }
+
+.sarvatobhadra-mode-tabs {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 10px;
+}
+
+.sarvatobhadra-mode-tabs button {
+  font: inherit;
+  font-size: 12px;
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.sarvatobhadra-mode-tabs button.active {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
+/* Nakshatra vedha: shading deepens with the number of rays crossing a cell. */
+.sarvatobhadra-vedha {
+  fill: #c2410c;
+}
+
+.sarvatobhadra-vedha-1 {
+  opacity: 0.12;
+}
+
+.sarvatobhadra-vedha-2 {
+  opacity: 0.24;
+}
+
+.sarvatobhadra-vedha-3 {
+  opacity: 0.36;
+}
+
+/* Gochara vedha marks the rashis of the grahas involved. */
+.sarvatobhadra-gochara-mark {
+  opacity: 0.3;
+}
+
+.sarvatobhadra-gochara-blocked {
+  fill: #c2410c;
+}
+
+.sarvatobhadra-gochara-clear {
+  fill: #15803d;
+}
+
+.sarvatobhadra-gochara-blocker {
+  fill: #a16207;
+}

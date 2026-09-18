@@ -1297,3 +1297,124 @@ export function computeSbcUpagrahas(transitSunSidereal) {
     nakshatra: NAKSHATRAS[(((sunIndex + u.offset - 1) % 27) + 27) % 27],
   }));
 }
+
+/**
+ * Gochara vedha ("obstruction"): a transiting graha sitting in one of its
+ * favourable houses from the natal Moon does NOT deliver that good result if
+ * another graha occupies the paired vedha house at the same time. Each entry
+ * below maps one of GOCHARA_FAVORABLE_HOUSES' houses to the house that
+ * blocks it.
+ *
+ * Printed tables disagree on a handful of entries, so each pair here is the
+ * majority reading across three independent sources (vedic-astrology.net's
+ * Gocara notes, the Rashi Gochar Vedha table, and Hindu Predictive Astrology
+ * ch. 34); where two of the three agreed, that value was taken. The places
+ * they diverged were Mercury's 10th, Jupiter's 5th and 11th, and Venus's
+ * 11th and 12th.
+ *
+ * Rahu and Ketu are absent from the classical table on both sides - they
+ * neither suffer nor cause vedha here - so they are left out rather than
+ * given invented pairs.
+ */
+export const GOCHARA_VEDHA_HOUSES = {
+  Sun: { 3: 9, 6: 12, 10: 4, 11: 5 },
+  Moon: { 1: 5, 3: 9, 6: 12, 7: 2, 10: 4, 11: 8 },
+  Mars: { 3: 12, 6: 9, 11: 5 },
+  Mercury: { 2: 5, 4: 3, 6: 9, 8: 1, 10: 8, 11: 12 },
+  Jupiter: { 2: 12, 5: 4, 7: 3, 9: 10, 11: 8 },
+  Venus: { 1: 8, 2: 7, 3: 1, 4: 10, 5: 9, 8: 5, 9: 11, 11: 6, 12: 3 },
+  Saturn: { 3: 12, 6: 9, 11: 5 },
+};
+
+/**
+ * Two classical "father and son" pairs never obstruct each other, whatever
+ * houses they occupy.
+ */
+const GOCHARA_VEDHA_EXEMPT = [['Sun', 'Saturn'], ['Moon', 'Mercury']];
+
+function vedhaExempt(planetA, planetB) {
+  return GOCHARA_VEDHA_EXEMPT.some(
+    ([a, b]) => (a === planetA && b === planetB) || (b === planetA && a === planetB),
+  );
+}
+
+/**
+ * Work out which favourable transits are currently being blocked.
+ * @param {Array} planets - the `planets` array from computeTransitChart
+ * @returns {Array} one entry per graha currently in a favourable house that
+ *   has a vedha pair, whether or not that pair is occupied
+ */
+export function computeGocharaVedha(planets) {
+  const byHouse = {};
+  for (const p of planets) {
+    // The nodes are outside this system on both sides: they are not listed
+    // as suffering vedha, and they are not counted as causing it either.
+    if (p.planet === 'Rahu' || p.planet === 'Ketu') continue;
+    (byHouse[p.houseFromMoon] ??= []).push(p.planet);
+  }
+
+  return planets
+    .filter((p) => GOCHARA_VEDHA_HOUSES[p.planet]?.[p.houseFromMoon] !== undefined)
+    .map((p) => {
+      const vedhaHouse = GOCHARA_VEDHA_HOUSES[p.planet][p.houseFromMoon];
+      const blockedBy = (byHouse[vedhaHouse] ?? []).filter(
+        (other) => other !== p.planet && !vedhaExempt(p.planet, other),
+      );
+      return {
+        planet: p.planet,
+        houseFromMoon: p.houseFromMoon,
+        rashi: p.rashi,
+        vedhaHouse,
+        blockedBy,
+        blocked: blockedBy.length > 0,
+      };
+    });
+}
+
+/**
+ * Nakshatra vedha readings. The piercing graha colours what the obstruction
+ * is read as; Jupiter is the one classical exception, where being pierced by
+ * it is taken as helpful rather than harmful.
+ */
+export const NAKSHATRA_VEDHA_EFFECTS = {
+  Sun: 'Pressure from authority or from your own position - things needing to be proven rather than assumed.',
+  Moon: 'Emotional unevenness; a poor stretch for decisions you want to feel settled about.',
+  Mars: 'Friction over money or property, and a shorter fuse than usual.',
+  Mercury: 'Miscommunication and paperwork going astray more than anything dramatic.',
+  Jupiter: 'Read as the helpful exception - gains and things opening up rather than being blocked.',
+  Venus: 'Relationships and comforts feeling unsettled or needing attention.',
+  Saturn: 'Slow, grinding difficulty - delay, fatigue, or health niggles rather than one clear event.',
+  Rahu: 'Obstruction and confusion; motives are harder to read, yours included.',
+  Ketu: 'Things quietly falling away, and attention drifting from what needs it.',
+};
+
+/**
+ * How heavy the affliction is read as, by how many grahas pierce the same
+ * point at once. The classical escalation for this is stated in stark terms
+ * (conflict, loss of wealth, defeat, death); these are the same four steps
+ * kept as plain descriptions of severity.
+ */
+export const NAKSHATRA_VEDHA_SEVERITY = [
+  'Minor friction.',
+  'Real strain, usually material.',
+  'Setbacks worth planning around.',
+  'A genuinely difficult stretch - worth being conservative.',
+];
+
+/**
+ * The three points in the chakra that are personal to a chart, counted from
+ * the natal Moon's own nakshatra, plus Abhijit (which is the same for
+ * everyone but is classically singled out). Being pierced at one of these is
+ * read as far more pointed than being pierced anywhere else.
+ */
+export function personalNakshatraRoles(natalMoonNakshatra) {
+  const janmaIndex = NAKSHATRAS.indexOf(natalMoonNakshatra);
+  if (janmaIndex < 0) return {};
+  const at = (count) => NAKSHATRAS[(janmaIndex + count - 1) % 27];
+  return {
+    [at(1)]: { role: 'Janma', meaning: 'your birth star - unsettledness, travel, being pulled off course' },
+    [at(10)]: { role: 'Karma', meaning: 'your work point - effort meeting resistance' },
+    [at(23)]: { role: 'Vinasa', meaning: 'the loss point - friction with the people around you' },
+    Abhijit: { role: 'Abhijit', meaning: 'classically the point of confinement - feeling boxed in' },
+  };
+}
