@@ -1129,7 +1129,7 @@ button[type='submit']:disabled {
   fill: #a16207;
 }
 
-.dashamsha-reading {
+.varga-reading {
   margin: 24px 0 0;
   padding: 16px 18px;
   border: 1px solid var(--border);
@@ -1137,26 +1137,26 @@ button[type='submit']:disabled {
   background: var(--bg-alt);
 }
 
-.dashamsha-reading h3 {
+.varga-reading h3 {
   margin: 0 0 8px;
   font-size: 16px;
   color: var(--text-h);
 }
 
-.dashamsha-summary {
+.varga-reading-summary {
   margin: 0 0 16px;
   font-size: 14px;
   max-width: 620px;
 }
 
-.dashamsha-pointers {
+.varga-reading-pointers {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
   margin-bottom: 18px;
 }
 
-.dashamsha-pointer {
+.varga-reading-pointer {
   flex: 1 1 260px;
   border: 1px solid var(--border);
   border-radius: 10px;
@@ -1164,7 +1164,7 @@ button[type='submit']:disabled {
   padding: 10px 12px;
 }
 
-.dashamsha-pointer-role {
+.varga-reading-pointer-role {
   margin: 0 0 4px;
   font-size: 12px;
   font-weight: 700;
@@ -1173,28 +1173,28 @@ button[type='submit']:disabled {
   color: var(--accent);
 }
 
-.dashamsha-pointer-body {
+.varga-reading-pointer-body {
   margin: 0 0 4px;
   font-size: 14px;
   color: var(--text-h);
 }
 
-.dashamsha-lists {
+.varga-reading-lists {
   display: flex;
   flex-wrap: wrap;
   gap: 18px;
 }
 
-.dashamsha-list {
+.varga-reading-list {
   flex: 1 1 280px;
 }
 
-.dashamsha-list-title {
+.varga-reading-list-title {
   margin: 0 0 8px;
   font-size: 14px;
 }
 
-.dashamsha-list ul {
+.varga-reading-list ul {
   list-style: none;
   margin: 0;
   padding: 0;
@@ -1203,18 +1203,18 @@ button[type='submit']:disabled {
   gap: 10px;
 }
 
-.dashamsha-entry-headline {
+.varga-reading-entry-headline {
   margin: 0;
   font-size: 14px;
   font-weight: 600;
   color: var(--text-h);
 }
 
-.dashamsha-entry-reasons {
+.varga-reading-entry-reasons {
   margin: 3px 0;
 }
 
-.dashamsha-chip {
+.varga-reading-chip {
   display: inline-block;
   margin-right: 4px;
   padding: 1px 8px;
@@ -1224,43 +1224,43 @@ button[type='submit']:disabled {
   font-weight: 600;
 }
 
-.dashamsha-entry-detail {
+.varga-reading-entry-detail {
   margin: 0;
   font-size: 13px;
 }
 
-.dashamsha-empty,
-.dashamsha-footnote {
+.varga-reading-empty,
+.varga-reading-footnote {
   margin: 0;
   font-size: 13px;
   font-style: italic;
 }
 
-.dashamsha-footnote {
+.varga-reading-footnote {
   margin-top: 16px;
   padding-top: 12px;
   border-top: 1px solid var(--border);
 }
 
-.dashamsha-pointer-verdict {
+.varga-reading-pointer-verdict {
   margin: 0 0 4px;
   font-size: 13px;
   font-weight: 600;
 }
 
-.dashamsha-tone-favorable,
-.dashamsha-tone-supportive {
+.varga-reading-tone-favorable,
+.varga-reading-tone-supportive {
   color: var(--exalted);
 }
 
-.dashamsha-tone-neutral {
+.varga-reading-tone-neutral {
   color: var(--text);
 }
 
-.dashamsha-tone-needsEffort {
+.varga-reading-tone-needsEffort {
   color: var(--debilitated);
 }
 
-.dashamsha-tone-challenging {
+.varga-reading-tone-challenging {
   color: var(--danger);
 }

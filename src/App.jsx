@@ -2,11 +2,11 @@ import { useMemo, useState } from 'react';
 import BirthChartForm from './components/BirthChartForm';
 import BirthSummary from './components/BirthSummary';
 import ChartDisplay from './components/ChartDisplay';
-import DashamshaReading from './components/DashamshaReading';
 import DashaPanel from './components/DashaPanel';
 import PlanetTable from './components/PlanetTable';
 import SarvatobhadraChakra from './components/SarvatobhadraChakra';
 import TransitPanel from './components/TransitPanel';
+import VargaReading from './components/VargaReading';
 import { computeBirthChart, computeDivisionalChart } from './lib/astro';
 import { localToUtc } from './lib/geocode';
 import './App.css';
@@ -150,7 +150,7 @@ export default function App() {
 
                 <ChartDisplay panels={chartPanels} />
                 <PlanetTable chart={displayedChart} />
-                {varga === 10 && <DashamshaReading chart={displayedChart} />}
+                <VargaReading chart={displayedChart} varga={varga} />
               </div>
             )}
 
