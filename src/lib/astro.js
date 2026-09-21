@@ -1111,53 +1111,237 @@ export function computeDivisionalChart(chart, varga) {
 }
 
 /**
- * Career themes each graha carries into the Dashamsha, and what each D10
- * house governs in a working life. D10 is read purely as the career varga,
- * so both tables are deliberately work-flavoured rather than reusing the
- * general-purpose PLANET_THEME, which is written for whole-life transits.
+ * Per-varga vocabulary for the reading sections. Every varga is read for
+ * its own subject, so each one carries its own graha themes and its own
+ * house meanings rather than reusing the general-purpose PLANET_THEME,
+ * which is written for whole-life transits. `pointers` names the two
+ * lords a reading of that chart classically starts from: the ascendant
+ * lord, plus the lord of the house the varga is actually about (the D1
+ * instead pairs the lagna lord with the Moon's dispositor, since its
+ * subject is the whole person rather than one department of life).
  */
-const D10_PLANET_CAREER = {
-  Sun: 'leadership, authority and roles with a visible chain of command',
-  Moon: 'public contact, care work and anything that moves with people’s moods',
-  Mars: 'engineering, surgery, defence and work that rewards decisive force',
-  Mercury: 'communication, analysis, trade and anything numerate',
-  Jupiter: 'teaching, advisory work, law and finance',
-  Venus: 'design, the arts, luxury and relationship-led work',
-  Saturn: 'structure, labour, long institutions and slowly built mastery',
-  Rahu: 'technology, foreign connections and unconventional paths',
-  Ketu: 'research, niche specialisation and work done away from the crowd',
+const VARGA_READINGS = {
+  1: {
+    label: 'D1',
+    heading: 'What shapes your life',
+    planets: {
+      Sun: 'vitality, authority and your father',
+      Moon: 'your mind, your moods and your mother',
+      Mars: 'drive, courage and an appetite for conflict',
+      Mercury: 'intellect, speech and everyday dealings',
+      Jupiter: 'growth, belief and good counsel',
+      Venus: 'relationships, comfort and taste',
+      Saturn: 'discipline, endurance and slowly earned results',
+      Rahu: 'ambition, restlessness and unconventional pulls',
+      Ketu: 'detachment, insight and what you quietly let go of',
+    },
+    houses: {
+      1: 'your body, temperament and the way you meet life',
+      2: 'family, speech, savings and what you hold on to',
+      3: 'courage, siblings and your own initiative',
+      4: 'home, mother, schooling and inner comfort',
+      5: 'children, creativity and the mind at play',
+      6: 'health, debts, service and rivals',
+      7: 'marriage, partnership and dealings with others',
+      8: 'upheaval, inheritance and hidden matters',
+      9: 'fortune, father, belief and long journeys',
+      10: 'career, status and your public standing',
+      11: 'gains, friendships and the wishes that come good',
+      12: 'expenses, solitude, foreign places and rest',
+    },
+    pointers: [
+      { house: 1, role: 'Ascendant lord', roleDetail: 'your body, temperament and the way you meet life' },
+      { dispositorOf: 'Moon', role: 'Moon’s lord', roleDetail: 'your mind and how settled it feels' },
+    ],
+    noSupport:
+      'No graha stands out as strongly placed in this D1, so results come from steady effort rather than from one obvious gift.',
+    emptySupportive:
+      'Nothing in this D1 is strongly placed; progress comes from effort rather than an inbuilt advantage.',
+    emptyNeedsEffort: 'Nothing in this D1 is badly placed, so no part of life is working against you.',
+    footnote:
+      'The D1 is the base chart; the divisional charts refine what it says rather than overrule it.',
+  },
+  2: {
+    label: 'D2',
+    heading: 'What supports your wealth',
+    planets: {
+      Sun: 'earnings tied to standing, and money that comes with authority',
+      Moon: 'fluctuating income and money that arrives through people',
+      Mars: 'money won by force, and property and risk',
+      Mercury: 'trade, accounting and money made by dealing',
+      Jupiter: 'steady increase, savings and generous support',
+      Venus: 'money from beauty, comfort and partnership',
+      Saturn: 'slow accumulation and wealth built by labour',
+      Rahu: 'sudden gains, speculation and unconventional money',
+      Ketu: 'a loose hold on money and indifference to accumulating it',
+    },
+    houses: {
+      1: 'how you handle money yourself',
+      2: 'savings, family wealth and what stays with you',
+      3: 'money earned by your own effort and small ventures',
+      4: 'property, vehicles and the assets that make a home',
+      5: 'speculation, investment and money from your own ideas',
+      6: 'debts, loans and money spent on obligations',
+      7: 'income through partners, clients and agreements',
+      8: 'other people’s money, inheritance and sudden shifts',
+      9: 'fortune, good luck and support from elders',
+      10: 'money that follows status and profession',
+      11: 'gains, dividends and what actually reaches your hands',
+      12: 'outgoings, losses and money that leaves for good',
+    },
+    pointers: [
+      { house: 1, role: 'D2 ascendant lord', roleDetail: 'how you handle money' },
+      { house: 2, role: 'D2 second lord', roleDetail: 'what you accumulate and hold on to' },
+    ],
+    noSupport:
+      'No graha stands out as strongly placed in this D2, so wealth builds by steady habit rather than from one obvious source.',
+    emptySupportive:
+      'Nothing in this D2 is strongly placed; wealth comes from habit rather than an inbuilt advantage.',
+    emptyNeedsEffort: 'Nothing in this D2 is badly placed, so nothing is working against your resources.',
+    footnote:
+      'Read alongside the D1; the D2 shows how resources are handled, not how much of them arrives.',
+  },
+  3: {
+    label: 'D3',
+    heading: 'What supports your courage and siblings',
+    planets: {
+      Sun: 'confidence, and your standing among brothers and sisters',
+      Moon: 'closeness with siblings, and courage that follows your mood',
+      Mars: 'raw nerve, competitiveness and quarrels with siblings',
+      Mercury: 'wit, communication and skill in your hands',
+      Jupiter: 'good counsel from siblings, and courage backed by belief',
+      Venus: 'ease with peers, and effort spent on what you enjoy',
+      Saturn: 'stamina, duty toward siblings and courage under strain',
+      Rahu: 'boldness, restlessness and unconventional risks',
+      Ketu: 'solitary effort and distance from siblings',
+    },
+    houses: {
+      1: 'your own nerve and how readily you act',
+      2: 'family ties, and what your effort sustains',
+      3: 'siblings, courage and self-made effort',
+      4: 'support at home for whatever you take on',
+      5: 'ideas worth acting on, and the effort you put into them',
+      6: 'rivals, obstacles and the fight in daily work',
+      7: 'allies and partners, and the effort you share with them',
+      8: 'setbacks that test nerve, and strain on sibling ties',
+      9: 'the principle behind your effort, and help from elders',
+      10: 'effort spent on career and reputation',
+      11: 'what your effort earns, and the friends who help',
+      12: 'effort spent out of view, and distance from siblings',
+    },
+    pointers: [
+      { house: 1, role: 'D3 ascendant lord', roleDetail: 'your own nerve and initiative' },
+      { house: 3, role: 'D3 third lord', roleDetail: 'siblings, courage and the effort you make yourself' },
+    ],
+    noSupport:
+      'No graha stands out as strongly placed in this D3, so courage is something built by practice rather than given.',
+    emptySupportive:
+      'Nothing in this D3 is strongly placed; courage is built by practice rather than an inbuilt advantage.',
+    emptyNeedsEffort: 'Nothing in this D3 is badly placed, so nothing is undercutting your initiative.',
+    footnote:
+      'Read alongside the D1; the D3 shows how courage and sibling ties play out, not whether they exist.',
+  },
+  9: {
+    label: 'D9',
+    heading: 'What supports your marriage and dharma',
+    planets: {
+      Sun: 'a partner with standing, and dharma exercised through authority',
+      Moon: 'emotional closeness, and a caring but changeable partner',
+      Mars: 'passion, friction and a forceful partner',
+      Mercury: 'a youthful, talkative partner, and a bond kept alive by talking',
+      Jupiter: 'a principled partner, and growth and blessing in marriage',
+      Venus: 'affection, pleasure and marriage as a source of ease',
+      Saturn: 'duty, delay, and a marriage that steadies with time',
+      Rahu: 'an unconventional or cross-cultural marriage, and strong pulls',
+      Ketu: 'detachment within marriage, and a turn toward the spiritual',
+    },
+    houses: {
+      1: 'your inner self and the strength behind everything else',
+      2: 'family life after marriage, and what the union sustains',
+      3: 'the effort you put into the marriage, and the in-laws',
+      4: 'domestic peace and the home the marriage makes',
+      5: 'children, romance and devotion',
+      6: 'friction, health and the obligations a marriage carries',
+      7: 'marriage itself, the partner, and how the union runs',
+      8: 'the marriage’s deeper tests, and how it endures them',
+      9: 'dharma, belief and the good fortune the marriage draws',
+      10: 'duty in the world, and the couple’s public standing',
+      11: 'friendships, and the fulfilment the union brings',
+      12: 'privacy, letting go, and the spiritual side of the bond',
+    },
+    pointers: [
+      { house: 1, role: 'D9 ascendant lord', roleDetail: 'your inner self and your dharma' },
+      { house: 7, role: 'D9 seventh lord', roleDetail: 'marriage itself and the partner' },
+    ],
+    noSupport:
+      'No graha stands out as strongly placed in this D9, so marriage and dharma are built patiently rather than handed over.',
+    emptySupportive:
+      'Nothing in this D9 is strongly placed; the marriage is built patiently rather than on an inbuilt advantage.',
+    emptyNeedsEffort: 'Nothing in this D9 is badly placed, so nothing is working against the marriage.',
+    footnote:
+      'Read alongside the D1; the D9 shows the quality of a marriage and its dharma, not the timing.',
+  },
+  10: {
+    label: 'D10',
+    heading: 'What supports your career',
+    planets: {
+      Sun: 'leadership, authority and roles with a visible chain of command',
+      Moon: 'public contact, care work and anything that moves with people’s moods',
+      Mars: 'engineering, surgery, defence and work that rewards decisive force',
+      Mercury: 'communication, analysis, trade and anything numerate',
+      Jupiter: 'teaching, advisory work, law and finance',
+      Venus: 'design, the arts, luxury and relationship-led work',
+      Saturn: 'structure, labour, long institutions and slowly built mastery',
+      Rahu: 'technology, foreign connections and unconventional paths',
+      Ketu: 'research, niche specialisation and work done away from the crowd',
+    },
+    houses: {
+      1: 'your working identity and how you come across professionally',
+      2: 'what the work earns and the resources it builds up',
+      3: 'initiative, hands-on skill and the effort you put in yourself',
+      4: 'qualifications, your base of operations and comfort at work',
+      5: 'creative and advisory work, and recognition for your own ideas',
+      6: 'service, competition and the daily grind of the job',
+      7: 'partnerships, clients and dealings with the public',
+      8: 'research, upheaval and work funded by other people',
+      9: 'mentors, ethics and long-range fortune in the career',
+      10: 'the career itself, your status and public standing',
+      11: 'gains, networks and the rewards that actually arrive',
+      12: 'work behind the scenes, and foreign or institutional settings',
+    },
+    pointers: [
+      { house: 1, role: 'D10 ascendant lord', roleDetail: 'how you operate professionally' },
+      { house: 10, role: 'D10 tenth lord', roleDetail: 'the career itself and your standing in it' },
+    ],
+    noSupport:
+      'No graha stands out as strongly placed in this D10, so career results come from steady effort rather than from one obvious strength.',
+    emptySupportive:
+      'Nothing in this D10 is strongly placed; progress comes from effort rather than an inbuilt advantage.',
+    emptyNeedsEffort:
+      'Nothing in this D10 is badly placed, so no part of the career is working against you.',
+    footnote:
+      'Read alongside the D1 chart; the D10 shows how a career unfolds, not whether it happens.',
+  },
 };
 
-const D10_HOUSE_MEANING = {
-  1: 'your working identity and how you come across professionally',
-  2: 'what the work earns and the resources it builds up',
-  3: 'initiative, hands-on skill and the effort you put in yourself',
-  4: 'qualifications, your base of operations and comfort at work',
-  5: 'creative and advisory work, and recognition for your own ideas',
-  6: 'service, competition and the daily grind of the job',
-  7: 'partnerships, clients and dealings with the public',
-  8: 'research, upheaval and work funded by other people',
-  9: 'mentors, ethics and long-range fortune in the career',
-  10: 'the career itself, your status and public standing',
-  11: 'gains, networks and the rewards that actually arrive',
-  12: 'work behind the scenes, and foreign or institutional settings',
-};
+/** Which vargas have a reading section. */
+export const READABLE_VARGAS = Object.keys(VARGA_READINGS).map(Number);
 
 const KENDRA_HOUSES = [1, 4, 7, 10];
 const TRIKONA_HOUSES = [1, 5, 9];
 const DUSTHANA_HOUSES = [6, 8, 12];
 const UPACHAYA_HOUSES = [3, 6, 10, 11];
-const D10_MALEFICS = new Set(['Sun', 'Mars', 'Saturn', 'Rahu', 'Ketu']);
+const READING_MALEFICS = new Set(['Sun', 'Mars', 'Saturn', 'Rahu', 'Ketu']);
 /** Most placements a single reading list will show before it stops. */
-const D10_MAX_LISTED = 4;
+const READING_MAX_LISTED = 4;
 
 /**
- * Classify one D10 placement as supportive, needing effort, or neither.
+ * Classify one placement as supportive, needing effort, or neither.
  * The rules are applied in priority order rather than additively, because
  * they genuinely conflict: the 6th is both a dusthana and an upachaya, and
  * a debilitated graha in a kendra is not a well-placed graha.
  */
-function dashamshaPlacement(p) {
+function readingPlacement(p) {
   // Debilitation outranks a good house - an angle gives such a planet more
   // room to act, not more ability to act well.
   if (p.debilitated) {
@@ -1167,7 +1351,7 @@ function dashamshaPlacement(p) {
   }
 
   const reasons = [];
-  if (D10_MALEFICS.has(p.planet) && UPACHAYA_HOUSES.includes(p.house)) {
+  if (READING_MALEFICS.has(p.planet) && UPACHAYA_HOUSES.includes(p.house)) {
     // Malefics classically grow into the upachaya houses, so a malefic in
     // the 6th reads as supportive rather than as a dusthana placement.
     reasons.push('Upachaya – a malefic grows stronger here');
@@ -1194,7 +1378,7 @@ function dashamshaPlacement(p) {
  * strong one. Scoring lets the reading lead with what stands out instead
  * of listing most of the chart.
  */
-const D10_REASON_WEIGHT = {
+const READING_REASON_WEIGHT = {
   Exalted: 3,
   Debilitated: 3,
   'Own sign': 2,
@@ -1204,12 +1388,12 @@ const D10_REASON_WEIGHT = {
 };
 
 /** Reasons not in the table above are weak, single-point signals. */
-function dashamshaScore(reasons) {
-  return reasons.reduce((total, r) => total + (D10_REASON_WEIGHT[r] ?? 1), 0);
+function readingScore(reasons) {
+  return reasons.reduce((total, r) => total + (READING_REASON_WEIGHT[r] ?? 1), 0);
 }
 
-function dashamshaEntry(p) {
-  const { verdict, reasons } = dashamshaPlacement(p);
+function readingEntry(p, vocab) {
+  const { verdict, reasons } = readingPlacement(p);
   return {
     planet: p.planet,
     house: p.house,
@@ -1218,64 +1402,72 @@ function dashamshaEntry(p) {
     reasons,
     houseLabel: `${ordinal(p.house)} house (${p.rashiName})`,
     headline: `${p.planet} in the ${ordinal(p.house)} house (${p.rashiName})`,
-    detail: `Brings ${D10_PLANET_CAREER[p.planet]} to ${D10_HOUSE_MEANING[p.house]}.`,
-    score: dashamshaScore(reasons),
+    detail: `Brings ${vocab.planets[p.planet]} to ${vocab.houses[p.house]}.`,
+    score: readingScore(reasons),
     strength: p.strength.total,
   };
 }
 
-const D10_VERDICT_LABELS = {
+const READING_VERDICT_LABELS = {
   supportive: 'Well placed',
   needsEffort: 'Under pressure',
   neutral: 'Neither helped nor hindered',
 };
 
 /**
- * Read a D10 (Dashamsha) chart for what supports the career and what has
- * to be worked for. The two lords called out first are the standard
- * starting points for a career reading: the D10 ascendant lord (how the
- * person operates professionally) and the lord of the D10's own 10th
- * house (the career itself). Grahas that land in neither list are left
- * out rather than listed as "neutral" - a reading is only useful if it
- * points somewhere.
- * @param {ReturnType<typeof computeDivisionalChart>} d10 - a D10 chart
+ * Read one chart - D1 or a divisional chart - for what supports its own
+ * subject and what has to be worked for. The two lords called out first
+ * are that chart's standard starting points (see VARGA_READINGS), and
+ * grahas that land in neither list are left out rather than listed as
+ * "neutral": a reading is only useful if it points somewhere.
+ * @param {ReturnType<typeof computeBirthChart>|ReturnType<typeof computeDivisionalChart>} chart
+ * @param {1|2|3|9|10} varga - which chart this is, deciding the vocabulary
  */
-export function computeDashamshaReading(d10) {
+export function computeVargaReading(chart, varga) {
+  const vocab = VARGA_READINGS[varga];
   // Rank on how much each placement says (score), falling back to the
   // chart's own strength figure only to break ties.
   const byNotability = (a, b) => b.score - a.score || b.strength - a.strength;
-  const entries = d10.planets.map(dashamshaEntry);
+  const entries = chart.planets.map((p) => readingEntry(p, vocab));
   const allSupportive = entries.filter((e) => e.verdict === 'supportive').sort(byNotability);
   const needsEffort = entries.filter((e) => e.verdict === 'needsEffort').sort(byNotability);
   // A kendra or trikona placement alone is common enough that listing every
   // one buries the placements that matter, so only the clearest are shown.
-  const supportive = allSupportive.slice(0, D10_MAX_LISTED);
+  const supportive = allSupportive.slice(0, READING_MAX_LISTED);
   const alsoSupportiveCount = allSupportive.length - supportive.length;
 
-  function lordPointer(rashi, role, roleDetail) {
+  const pointers = vocab.pointers.map((spec) => {
+    const rashi =
+      spec.dispositorOf !== undefined
+        ? chart.planets.find((p) => p.planet === spec.dispositorOf).rashi
+        : (chart.ascendant.rashi + spec.house - 1) % 12;
     const lord = RASHI_LORDS[rashi];
     const entry = entries.find((e) => e.planet === lord);
-    return { ...entry, role, roleDetail, lord, verdictLabel: D10_VERDICT_LABELS[entry.verdict] };
-  }
-
-  const tenthRashi = (d10.ascendant.rashi + 9) % 12;
-  const pointers = [
-    lordPointer(d10.ascendant.rashi, 'D10 ascendant lord', 'how you operate professionally'),
-    lordPointer(tenthRashi, 'D10 tenth lord', 'the career itself and your standing in it'),
-  ];
+    return {
+      ...entry,
+      role: spec.role,
+      roleDetail: spec.roleDetail,
+      lord,
+      verdictLabel: READING_VERDICT_LABELS[entry.verdict],
+    };
+  });
 
   const best = allSupportive[0];
   const summary = best
-    ? `${best.planet} is the best-placed graha in this D10, so ${D10_PLANET_CAREER[best.planet]} is where the chart gives the most support.`
-    : 'No graha stands out as strongly placed in this D10, so career results come from steady effort rather than from one obvious strength.';
+    ? `${best.planet} is the best-placed graha in this ${vocab.label}, so ${vocab.planets[best.planet]} is where the chart gives the most support.`
+    : vocab.noSupport;
 
   return {
-    ascendantRashiName: d10.ascendant.rashiName,
+    heading: vocab.heading,
+    ascendantRashiName: chart.ascendant.rashiName,
     pointers,
     supportive,
     alsoSupportiveCount,
     needsEffort,
     summary,
+    emptySupportive: vocab.emptySupportive,
+    emptyNeedsEffort: vocab.emptyNeedsEffort,
+    footnote: vocab.footnote,
   };
 }
 
