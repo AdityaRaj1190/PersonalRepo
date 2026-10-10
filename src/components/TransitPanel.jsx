@@ -82,6 +82,9 @@ export default function TransitPanel({ natalChart }) {
               <div className="transit-week-card" key={window.windowIndex}>
                 <p className="transit-week-range">{formatWindowRange(window.startDate, window.endDate)}</p>
                 <p className="transit-week-headline">{window.narrative.headline}</p>
+                {window.narrative.changeNote && (
+                  <p className="transit-week-change">{window.narrative.changeNote}</p>
+                )}
 
                 {window.narrative.leanInto.length > 0 && (
                   <ul className="transit-week-advice-list transit-effect-favorable">
@@ -241,7 +244,7 @@ export default function TransitPanel({ natalChart }) {
             </p>
           ) : (
             <div className="planet-table-wrapper">
-              <table className="planet-table">
+              <table className="planet-table transit-aspect-table">
                 <thead>
                   <tr>
                     <th>Transiting</th>
@@ -255,12 +258,16 @@ export default function TransitPanel({ natalChart }) {
                 <tbody>
                   {exactAspects.map((a, i) => (
                     <tr key={i}>
-                      <td>{a.planet}</td>
-                      <td>{a.label}</td>
-                      <td>{a.natalPoint}</td>
-                      <td>{formatDegree(a.orbDeg)}</td>
-                      <td className={a.applying ? 'transit-aspect-applying' : ''}>{a.timingLabel}</td>
-                      <td className="transit-aspect-meaning">{a.meaning}</td>
+                      <td data-label="Transiting">{a.planet}</td>
+                      <td data-label="Aspect">{a.label}</td>
+                      <td data-label="Natal Point">{a.natalPoint}</td>
+                      <td data-label="Orb">{formatDegree(a.orbDeg)}</td>
+                      <td data-label="Timing" className={a.applying ? 'transit-aspect-applying' : ''}>
+                        {a.timingLabel}
+                      </td>
+                      <td data-label="What to Watch For" className="transit-aspect-meaning">
+                        {a.meaning}
+                      </td>
                     </tr>
                   ))}
                 </tbody>

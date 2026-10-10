@@ -789,6 +789,55 @@ button[type='submit']:disabled {
   color: var(--text-h);
 }
 
+/*
+ * On phones the six-column aspects table can't fit, and its long "What to
+ * Watch For" text forced a sideways scroll. Stack each row into a small
+ * labelled card instead so everything wraps within the screen width.
+ */
+@media (max-width: 560px) {
+  .transit-aspect-table,
+  .transit-aspect-table tbody,
+  .transit-aspect-table tr,
+  .transit-aspect-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .transit-aspect-table thead {
+    display: none;
+  }
+
+  .transit-aspect-table tr {
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .transit-aspect-table th,
+  .transit-aspect-table td {
+    white-space: normal;
+  }
+
+  .transit-aspect-table td {
+    display: flex;
+    gap: 8px;
+    padding: 3px 0;
+    border: none;
+    text-align: left;
+    overflow-wrap: anywhere;
+  }
+
+  .transit-aspect-table td::before {
+    content: attr(data-label);
+    flex: 0 0 96px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .transit-aspect-table .transit-aspect-meaning {
+    min-width: 0;
+  }
+}
+
 .transit-panel {
   display: flex;
   flex-direction: column;
@@ -920,6 +969,13 @@ button[type='submit']:disabled {
   font-size: 13px;
   font-weight: 600;
   color: var(--text-h);
+}
+
+.transit-week-change {
+  margin: -4px 0 0;
+  font-size: 12px;
+  font-style: italic;
+  color: var(--text);
 }
 
 .transit-week-advice-list {
