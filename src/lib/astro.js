@@ -706,18 +706,78 @@ const TIER_HEADLINES = {
     'Conditions stay broadly favorable and steady.',
     'A comfortable stretch overall - momentum stays on your side.',
     'Skies stay mostly clear around this time.',
+    'A supportive window - a good time to push plans forward.',
+    'Things tend to fall into place more easily now.',
+    'An encouraging stretch - make use of the tailwind.',
   ],
   mixed: [
     'A mixed stretch - some support, some friction.',
     'A balancing act around this time - progress needs a bit more effort.',
     'Give and take here; be selective about where you push.',
+    'Some doors open while others stick - pick your battles.',
+    'An uneven patch - steady effort beats big leaps.',
+    'Half tailwind, half headwind - pace yourself.',
   ],
   demanding: [
     'A demanding stretch - move carefully and avoid big new commitments.',
     'A patch that asks for patience - keep plans flexible.',
     "Proceed cautiously here - it's not the time to force things.",
+    'A heavier stretch - protect your energy and keep things simple.',
+    'Resistance runs high - finish what you started before taking on more.',
+    'A testing window - slow down and double-check important decisions.',
   ],
 };
+
+const TIER_RANK = { demanding: 0, mixed: 1, favorable: 2 };
+const HEADLINE_LOOKBACK_DAYS = 7;
+
+function transitTier(transit) {
+  const ratio = transit.favorableCount / transit.totalCount;
+  return ratio >= 0.6 ? 'favorable' : ratio >= 0.4 ? 'mixed' : 'demanding';
+}
+
+/**
+ * The tier headline for a window starting on `date`, picked by the date's
+ * UTC day number so the wording rotates from one day to the next rather
+ * than being pinned to the window's position (which used to print the same
+ * two sentences for weeks on end while the tier didn't change). `avoid`
+ * holds statements this one must not repeat - it steps to the next variant
+ * until it finds one that isn't in the set.
+ */
+function tierHeadline(tier, date, avoid = new Set()) {
+  const pool = TIER_HEADLINES[tier];
+  const day = Math.floor(date.getTime() / DAY_MS);
+  for (let step = 0; step < pool.length; step += 1) {
+    const candidate = pool[(day + step) % pool.length];
+    if (!avoid.has(candidate)) return candidate;
+  }
+  return pool[day % pool.length];
+}
+
+/**
+ * What actually changed in the sky versus a week before `transit`: whether
+ * the overall balance got easier or tougher, and which non-Moon grahas
+ * moved into a new house from the natal Moon (the Moon changes house every
+ * couple of days, so it's left out as noise). Returns null when nothing
+ * meaningful moved.
+ */
+function weekOverWeekNote(transit, lastWeekTransit, tier, lastTier) {
+  const parts = [];
+  if (TIER_RANK[tier] > TIER_RANK[lastTier]) parts.push('Easier than the week before');
+  else if (TIER_RANK[tier] < TIER_RANK[lastTier]) parts.push('Tougher than the week before');
+
+  const moved = transit.planets.filter((p) => {
+    if (p.planet === 'Moon') return false;
+    const before = lastWeekTransit.planets.find((q) => q.planet === p.planet);
+    return before && before.houseFromMoon !== p.houseFromMoon;
+  });
+  if (moved.length > 0) {
+    const shifts = moved.map((p) => `${p.planet} now in your ${ordinal(p.houseFromMoon)} house from the Moon (${p.rashiName})`);
+    parts.push(`${parts.length ? 'with' : 'New since the week before:'} ${joinFriendly(shifts)}`);
+  }
+  if (parts.length === 0) return null;
+  return `${parts.join(', ')}.`;
+}
 
 /**
  * Render one direction's (lean-into or take-care) category entries into
@@ -746,7 +806,8 @@ function renderCategoryEntries(entries, direction, previousState) {
  * snapshot: an overall headline based on the favorable/challenging
  * balance, what to lean into, what to be careful with, and one explained
  * sentence per named dosha/Latta in play - written for a reader with no
- * prior astrology vocabulary. `variantIndex`, `previousWatchLabels`, and
+ * prior astrology vocabulary. `headlineContext` carries the already-chosen
+ * headline and week-over-week change note; `previousWatchLabels` and
  * `previousCategoryState` let the same underlying situation (which often
  * repeats from one period to the next, since most grahas don't change
  * houses within a couple of weeks) get worded differently, or collapsed
@@ -758,13 +819,11 @@ function buildPeriodNarrative(
   favorablePlanets,
   challengingPlanets,
   specialWatch,
-  variantIndex,
+  headlineContext,
   previousWatchLabels,
   previousCategoryState,
 ) {
-  const ratio = favorablePlanets.length / transit.totalCount;
-  const tier = ratio >= 0.6 ? 'favorable' : ratio >= 0.4 ? 'mixed' : 'demanding';
-  const headline = TIER_HEADLINES[tier][variantIndex % TIER_HEADLINES[tier].length];
+  const { headline, changeNote } = headlineContext;
 
   const { leanEntries, careEntries } = netCategoryAdvice(favorablePlanets, challengingPlanets);
   const leanInto = renderCategoryEntries(leanEntries, 'lean', previousCategoryState).map((s) => `${capitalize(s)}.`);
@@ -782,7 +841,7 @@ function buildPeriodNarrative(
     };
   });
 
-  return { headline, leanInto, takeCare, watchouts };
+  return { headline, changeNote, leanInto, takeCare, watchouts };
 }
 
 const OUTLOOK_WINDOW_DAYS = 10;
@@ -804,6 +863,7 @@ const OUTLOOK_WINDOW_COUNT = 2;
 export function computeTransitOutlook(natalChart, startDate, windowCount = OUTLOOK_WINDOW_COUNT) {
   const previousWatchLabels = new Map();
   const previousCategoryState = new Map();
+  let previousHeadline = null;
   return Array.from({ length: windowCount }, (_, i) => {
     const windowStart = new Date(startDate.getTime() + i * OUTLOOK_WINDOW_DAYS * DAY_MS);
     const windowEnd = new Date(windowStart.getTime() + OUTLOOK_WINDOW_DAYS * DAY_MS - 1);
@@ -811,12 +871,25 @@ export function computeTransitOutlook(natalChart, startDate, windowCount = OUTLO
     const favorablePlanets = transit.planets.filter((p) => p.effect === 'favorable');
     const challengingPlanets = transit.planets.filter((p) => p.effect === 'challenging');
     const specialWatch = transit.planets.filter((p) => p.maleficTransit || p.latta);
+
+    // Repeat check: work out the headline this same window would have
+    // carried a week earlier and never print that statement again (nor the
+    // previous window's), so the summary visibly moves from week to week.
+    const lastWeekStart = new Date(windowStart.getTime() - HEADLINE_LOOKBACK_DAYS * DAY_MS);
+    const lastWeekTransit = computeTransitChart(natalChart, lastWeekStart);
+    const tier = transitTier(transit);
+    const lastTier = transitTier(lastWeekTransit);
+    const lastWeekHeadline = tierHeadline(lastTier, lastWeekStart);
+    const headline = tierHeadline(tier, windowStart, new Set([lastWeekHeadline, previousHeadline]));
+    previousHeadline = headline;
+    const changeNote = weekOverWeekNote(transit, lastWeekTransit, tier, lastTier);
+
     const narrative = buildPeriodNarrative(
       transit,
       favorablePlanets,
       challengingPlanets,
       specialWatch,
-      i,
+      { headline, changeNote },
       previousWatchLabels,
       previousCategoryState,
     );
