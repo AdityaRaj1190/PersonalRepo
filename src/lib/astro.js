@@ -923,6 +923,9 @@ export function computeTransitOutlook(natalChart, startDate, windowCount = OUTLO
  */
 export const ASPECT_ORB_DEG = 6;
 const ASPECT_TREND_SAMPLE_DAYS = 2;
+// The Moon covers ~13deg a day, so a +/-2 day sample spans ~50deg and its
+// orb trend comes out meaningless; sample it over a few hours instead.
+const MOON_TREND_SAMPLE_DAYS = 0.25;
 const ASPECT_MIN_DAILY_RATE = 0.02; // deg/day; below this, treat the pairing as effectively stationary
 
 function ordinal(n) {
@@ -1058,14 +1061,32 @@ function mergeNodalDuplicates(results) {
   return merged;
 }
 
-/** A one-line, plain-language read on where a pairing sits in its cycle. */
-function aspectTimingLabel(orbDeg, applying, stationary, exactDate) {
-  if (stationary) return "Nearly stationary right now - too slow-moving to say when it's exact";
+function shortDate(date) {
+  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}
+
+function relativeDays(days) {
+  const n = Math.round(days);
+  if (n < 1) return 'today';
+  return n === 1 ? '1 day' : `${n} days`;
+}
+
+/**
+ * A one-line, plain-language read on where a pairing sits in its cycle:
+ * "Building" while the orb is still closing (with when it peaks), "Fading"
+ * once it has passed exact (with roughly when it peaked).
+ */
+function aspectTimingLabel(orbDeg, applying, stationary, exactDate, peakedDate, fromDate) {
+  if (stationary) return "Holding steady - moving too slowly right now to say when it peaks";
   if (applying && exactDate) {
-    return `Tightening toward exact around ${exactDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`;
+    const days = (exactDate.getTime() - fromDate.getTime()) / DAY_MS;
+    const when = relativeDays(days);
+    if (when === 'today') return 'Building, peaks later today';
+    return `Building, peaks ~${shortDate(exactDate)} (in ${when})`;
   }
-  if (applying) return 'Tightening toward exact';
-  return orbDeg < 1 ? 'At its closest point now, about to separate' : 'Already past its closest point, separating';
+  if (applying) return 'Building';
+  if (orbDeg < 1) return 'At its peak now, about to fade';
+  return peakedDate ? `Fading, peaked ~${shortDate(peakedDate)}` : 'Fading';
 }
 
 /**
@@ -1093,7 +1114,8 @@ export function computeExactAspects(natalChart, fromDate) {
   let results = [];
 
   for (const planet of PLANETS) {
-    const sampleDates = [-ASPECT_TREND_SAMPLE_DAYS, 0, ASPECT_TREND_SAMPLE_DAYS].map(
+    const sampleDays = planet === 'Moon' ? MOON_TREND_SAMPLE_DAYS : ASPECT_TREND_SAMPLE_DAYS;
+    const sampleDates = [-sampleDays, 0, sampleDays].map(
       (d) => new Date(fromDate.getTime() + d * DAY_MS),
     );
     const sampleLongitudes = sampleDates.map((d) => transitingSiderealLongitude(planet, d));
@@ -1104,14 +1126,25 @@ export function computeExactAspects(natalChart, fromDate) {
         const orbNow = orbs[1];
         if (orbNow > ASPECT_ORB_DEG) continue;
 
-        const rate = (orbs[2] - orbs[0]) / (2 * ASPECT_TREND_SAMPLE_DAYS); // deg/day, negative = tightening
+        const rate = (orbs[2] - orbs[0]) / (2 * sampleDays); // deg/day, negative = tightening
         const stationary = Math.abs(rate) < ASPECT_MIN_DAILY_RATE;
         const applying = !stationary && rate < 0;
         const daysToExact = applying ? orbNow / -rate : null;
         if (applying && daysToExact > ASPECT_HORIZON_DAYS) continue;
         const exactDate = applying ? new Date(fromDate.getTime() + daysToExact * DAY_MS) : null;
+        const separating = !stationary && rate > 0;
+        const peakedDate = separating ? new Date(fromDate.getTime() - (orbNow / rate) * DAY_MS) : null;
 
-        results.push({ planet, natalPoint: point.name, label: aspectLabel(offsetDeg), orbDeg: orbNow, applying, stationary, exactDate });
+        results.push({
+          planet,
+          natalPoint: point.name,
+          label: aspectLabel(offsetDeg),
+          orbDeg: orbNow,
+          applying,
+          stationary,
+          exactDate,
+          peakedDate,
+        });
       }
     }
   }
@@ -1124,7 +1157,7 @@ export function computeExactAspects(natalChart, fromDate) {
   return results
     .map((r) => ({
       ...r,
-      timingLabel: aspectTimingLabel(r.orbDeg, r.applying, r.stationary, r.exactDate),
+      timingLabel: aspectTimingLabel(r.orbDeg, r.applying, r.stationary, r.exactDate, r.peakedDate, fromDate),
       meaning: aspectMeaning(r.planet, r.natalPoint),
     }))
     .sort((a, b) => {
