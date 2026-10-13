@@ -706,18 +706,78 @@ const TIER_HEADLINES = {
     'Conditions stay broadly favorable and steady.',
     'A comfortable stretch overall - momentum stays on your side.',
     'Skies stay mostly clear around this time.',
+    'A supportive window - a good time to push plans forward.',
+    'Things tend to fall into place more easily now.',
+    'An encouraging stretch - make use of the tailwind.',
   ],
   mixed: [
     'A mixed stretch - some support, some friction.',
     'A balancing act around this time - progress needs a bit more effort.',
     'Give and take here; be selective about where you push.',
+    'Some doors open while others stick - pick your battles.',
+    'An uneven patch - steady effort beats big leaps.',
+    'Half tailwind, half headwind - pace yourself.',
   ],
   demanding: [
     'A demanding stretch - move carefully and avoid big new commitments.',
     'A patch that asks for patience - keep plans flexible.',
     "Proceed cautiously here - it's not the time to force things.",
+    'A heavier stretch - protect your energy and keep things simple.',
+    'Resistance runs high - finish what you started before taking on more.',
+    'A testing window - slow down and double-check important decisions.',
   ],
 };
+
+const TIER_RANK = { demanding: 0, mixed: 1, favorable: 2 };
+const HEADLINE_LOOKBACK_DAYS = 7;
+
+function transitTier(transit) {
+  const ratio = transit.favorableCount / transit.totalCount;
+  return ratio >= 0.6 ? 'favorable' : ratio >= 0.4 ? 'mixed' : 'demanding';
+}
+
+/**
+ * The tier headline for a window starting on `date`, picked by the date's
+ * UTC day number so the wording rotates from one day to the next rather
+ * than being pinned to the window's position (which used to print the same
+ * two sentences for weeks on end while the tier didn't change). `avoid`
+ * holds statements this one must not repeat - it steps to the next variant
+ * until it finds one that isn't in the set.
+ */
+function tierHeadline(tier, date, avoid = new Set()) {
+  const pool = TIER_HEADLINES[tier];
+  const day = Math.floor(date.getTime() / DAY_MS);
+  for (let step = 0; step < pool.length; step += 1) {
+    const candidate = pool[(day + step) % pool.length];
+    if (!avoid.has(candidate)) return candidate;
+  }
+  return pool[day % pool.length];
+}
+
+/**
+ * What actually changed in the sky versus a week before `transit`: whether
+ * the overall balance got easier or tougher, and which non-Moon grahas
+ * moved into a new house from the natal Moon (the Moon changes house every
+ * couple of days, so it's left out as noise). Returns null when nothing
+ * meaningful moved.
+ */
+function weekOverWeekNote(transit, lastWeekTransit, tier, lastTier) {
+  const parts = [];
+  if (TIER_RANK[tier] > TIER_RANK[lastTier]) parts.push('Easier than the week before');
+  else if (TIER_RANK[tier] < TIER_RANK[lastTier]) parts.push('Tougher than the week before');
+
+  const moved = transit.planets.filter((p) => {
+    if (p.planet === 'Moon') return false;
+    const before = lastWeekTransit.planets.find((q) => q.planet === p.planet);
+    return before && before.houseFromMoon !== p.houseFromMoon;
+  });
+  if (moved.length > 0) {
+    const shifts = moved.map((p) => `${p.planet} now in your ${ordinal(p.houseFromMoon)} house from the Moon (${p.rashiName})`);
+    parts.push(`${parts.length ? 'with' : 'New since the week before:'} ${joinFriendly(shifts)}`);
+  }
+  if (parts.length === 0) return null;
+  return `${parts.join(', ')}.`;
+}
 
 /**
  * Render one direction's (lean-into or take-care) category entries into
@@ -746,7 +806,8 @@ function renderCategoryEntries(entries, direction, previousState) {
  * snapshot: an overall headline based on the favorable/challenging
  * balance, what to lean into, what to be careful with, and one explained
  * sentence per named dosha/Latta in play - written for a reader with no
- * prior astrology vocabulary. `variantIndex`, `previousWatchLabels`, and
+ * prior astrology vocabulary. `headlineContext` carries the already-chosen
+ * headline and week-over-week change note; `previousWatchLabels` and
  * `previousCategoryState` let the same underlying situation (which often
  * repeats from one period to the next, since most grahas don't change
  * houses within a couple of weeks) get worded differently, or collapsed
@@ -758,13 +819,11 @@ function buildPeriodNarrative(
   favorablePlanets,
   challengingPlanets,
   specialWatch,
-  variantIndex,
+  headlineContext,
   previousWatchLabels,
   previousCategoryState,
 ) {
-  const ratio = favorablePlanets.length / transit.totalCount;
-  const tier = ratio >= 0.6 ? 'favorable' : ratio >= 0.4 ? 'mixed' : 'demanding';
-  const headline = TIER_HEADLINES[tier][variantIndex % TIER_HEADLINES[tier].length];
+  const { headline, changeNote } = headlineContext;
 
   const { leanEntries, careEntries } = netCategoryAdvice(favorablePlanets, challengingPlanets);
   const leanInto = renderCategoryEntries(leanEntries, 'lean', previousCategoryState).map((s) => `${capitalize(s)}.`);
@@ -782,7 +841,7 @@ function buildPeriodNarrative(
     };
   });
 
-  return { headline, leanInto, takeCare, watchouts };
+  return { headline, changeNote, leanInto, takeCare, watchouts };
 }
 
 const OUTLOOK_WINDOW_DAYS = 10;
@@ -804,6 +863,7 @@ const OUTLOOK_WINDOW_COUNT = 2;
 export function computeTransitOutlook(natalChart, startDate, windowCount = OUTLOOK_WINDOW_COUNT) {
   const previousWatchLabels = new Map();
   const previousCategoryState = new Map();
+  let previousHeadline = null;
   return Array.from({ length: windowCount }, (_, i) => {
     const windowStart = new Date(startDate.getTime() + i * OUTLOOK_WINDOW_DAYS * DAY_MS);
     const windowEnd = new Date(windowStart.getTime() + OUTLOOK_WINDOW_DAYS * DAY_MS - 1);
@@ -811,12 +871,25 @@ export function computeTransitOutlook(natalChart, startDate, windowCount = OUTLO
     const favorablePlanets = transit.planets.filter((p) => p.effect === 'favorable');
     const challengingPlanets = transit.planets.filter((p) => p.effect === 'challenging');
     const specialWatch = transit.planets.filter((p) => p.maleficTransit || p.latta);
+
+    // Repeat check: work out the headline this same window would have
+    // carried a week earlier and never print that statement again (nor the
+    // previous window's), so the summary visibly moves from week to week.
+    const lastWeekStart = new Date(windowStart.getTime() - HEADLINE_LOOKBACK_DAYS * DAY_MS);
+    const lastWeekTransit = computeTransitChart(natalChart, lastWeekStart);
+    const tier = transitTier(transit);
+    const lastTier = transitTier(lastWeekTransit);
+    const lastWeekHeadline = tierHeadline(lastTier, lastWeekStart);
+    const headline = tierHeadline(tier, windowStart, new Set([lastWeekHeadline, previousHeadline]));
+    previousHeadline = headline;
+    const changeNote = weekOverWeekNote(transit, lastWeekTransit, tier, lastTier);
+
     const narrative = buildPeriodNarrative(
       transit,
       favorablePlanets,
       challengingPlanets,
       specialWatch,
-      i,
+      { headline, changeNote },
       previousWatchLabels,
       previousCategoryState,
     );
@@ -850,6 +923,9 @@ export function computeTransitOutlook(natalChart, startDate, windowCount = OUTLO
  */
 export const ASPECT_ORB_DEG = 6;
 const ASPECT_TREND_SAMPLE_DAYS = 2;
+// The Moon covers ~13deg a day, so a +/-2 day sample spans ~50deg and its
+// orb trend comes out meaningless; sample it over a few hours instead.
+const MOON_TREND_SAMPLE_DAYS = 0.25;
 const ASPECT_MIN_DAILY_RATE = 0.02; // deg/day; below this, treat the pairing as effectively stationary
 
 function ordinal(n) {
@@ -985,14 +1061,32 @@ function mergeNodalDuplicates(results) {
   return merged;
 }
 
-/** A one-line, plain-language read on where a pairing sits in its cycle. */
-function aspectTimingLabel(orbDeg, applying, stationary, exactDate) {
-  if (stationary) return "Nearly stationary right now - too slow-moving to say when it's exact";
+function shortDate(date) {
+  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}
+
+function relativeDays(days) {
+  const n = Math.round(days);
+  if (n < 1) return 'today';
+  return n === 1 ? '1 day' : `${n} days`;
+}
+
+/**
+ * A one-line, plain-language read on where a pairing sits in its cycle:
+ * "Building" while the orb is still closing (with when it peaks), "Fading"
+ * once it has passed exact (with roughly when it peaked).
+ */
+function aspectTimingLabel(orbDeg, applying, stationary, exactDate, peakedDate, fromDate) {
+  if (stationary) return "Holding steady - moving too slowly right now to say when it peaks";
   if (applying && exactDate) {
-    return `Tightening toward exact around ${exactDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`;
+    const days = (exactDate.getTime() - fromDate.getTime()) / DAY_MS;
+    const when = relativeDays(days);
+    if (when === 'today') return 'Building, peaks later today';
+    return `Building, peaks ~${shortDate(exactDate)} (in ${when})`;
   }
-  if (applying) return 'Tightening toward exact';
-  return orbDeg < 1 ? 'At its closest point now, about to separate' : 'Already past its closest point, separating';
+  if (applying) return 'Building';
+  if (orbDeg < 1) return 'At its peak now, about to fade';
+  return peakedDate ? `Fading, peaked ~${shortDate(peakedDate)}` : 'Fading';
 }
 
 /**
@@ -1020,7 +1114,8 @@ export function computeExactAspects(natalChart, fromDate) {
   let results = [];
 
   for (const planet of PLANETS) {
-    const sampleDates = [-ASPECT_TREND_SAMPLE_DAYS, 0, ASPECT_TREND_SAMPLE_DAYS].map(
+    const sampleDays = planet === 'Moon' ? MOON_TREND_SAMPLE_DAYS : ASPECT_TREND_SAMPLE_DAYS;
+    const sampleDates = [-sampleDays, 0, sampleDays].map(
       (d) => new Date(fromDate.getTime() + d * DAY_MS),
     );
     const sampleLongitudes = sampleDates.map((d) => transitingSiderealLongitude(planet, d));
@@ -1031,14 +1126,25 @@ export function computeExactAspects(natalChart, fromDate) {
         const orbNow = orbs[1];
         if (orbNow > ASPECT_ORB_DEG) continue;
 
-        const rate = (orbs[2] - orbs[0]) / (2 * ASPECT_TREND_SAMPLE_DAYS); // deg/day, negative = tightening
+        const rate = (orbs[2] - orbs[0]) / (2 * sampleDays); // deg/day, negative = tightening
         const stationary = Math.abs(rate) < ASPECT_MIN_DAILY_RATE;
         const applying = !stationary && rate < 0;
         const daysToExact = applying ? orbNow / -rate : null;
         if (applying && daysToExact > ASPECT_HORIZON_DAYS) continue;
         const exactDate = applying ? new Date(fromDate.getTime() + daysToExact * DAY_MS) : null;
+        const separating = !stationary && rate > 0;
+        const peakedDate = separating ? new Date(fromDate.getTime() - (orbNow / rate) * DAY_MS) : null;
 
-        results.push({ planet, natalPoint: point.name, label: aspectLabel(offsetDeg), orbDeg: orbNow, applying, stationary, exactDate });
+        results.push({
+          planet,
+          natalPoint: point.name,
+          label: aspectLabel(offsetDeg),
+          orbDeg: orbNow,
+          applying,
+          stationary,
+          exactDate,
+          peakedDate,
+        });
       }
     }
   }
@@ -1051,7 +1157,7 @@ export function computeExactAspects(natalChart, fromDate) {
   return results
     .map((r) => ({
       ...r,
-      timingLabel: aspectTimingLabel(r.orbDeg, r.applying, r.stationary, r.exactDate),
+      timingLabel: aspectTimingLabel(r.orbDeg, r.applying, r.stationary, r.exactDate, r.peakedDate, fromDate),
       meaning: aspectMeaning(r.planet, r.natalPoint),
     }))
     .sort((a, b) => {

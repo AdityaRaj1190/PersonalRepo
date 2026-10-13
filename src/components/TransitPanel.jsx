@@ -8,6 +8,7 @@ import {
   computeTransitOutlook,
 } from '../lib/astro';
 import { formatDegree } from '../lib/format';
+import InfoNote from './InfoNote';
 
 const TABS = [
   { id: 'overview', label: 'Overview' },
@@ -82,6 +83,9 @@ export default function TransitPanel({ natalChart }) {
               <div className="transit-week-card" key={window.windowIndex}>
                 <p className="transit-week-range">{formatWindowRange(window.startDate, window.endDate)}</p>
                 <p className="transit-week-headline">{window.narrative.headline}</p>
+                {window.narrative.changeNote && (
+                  <p className="transit-week-change">{window.narrative.changeNote}</p>
+                )}
 
                 {window.narrative.leanInto.length > 0 && (
                   <ul className="transit-week-advice-list transit-effect-favorable">
@@ -110,12 +114,12 @@ export default function TransitPanel({ natalChart }) {
               </div>
             ))}
           </div>
-          <p className="transit-nakshatra-note">
+          <InfoNote className="transit-nakshatra-note">
             Each panel is a snapshot taken at its start - the slower grahas hold their house across the
             whole 10-day window, while the Moon (and to a lesser extent Mercury/Venus/Mars) can shift
             sign or nakshatra within it; check the Planet Positions tab on any given day for the exact
             picture.
-          </p>
+          </InfoNote>
 
           <h4 className="transit-outlook-title">Grahas Right Now</h4>
           <p className="transit-summary">
@@ -222,13 +226,13 @@ export default function TransitPanel({ natalChart }) {
               </tbody>
             </table>
           </div>
-          <p className="transit-nakshatra-note">
+          <InfoNote className="transit-nakshatra-note">
             "Gochara Effect" and "Tara Bala" are two independent classical readings of the same transit
             (one from the house it's sitting in, one from its nakshatra), so they can point different
             ways - "Overall" is the plain-language takeaway once both are weighed together, and is what's
             worth actually paying attention to. "Latta" and "Named Transit" flag a couple of specific,
             well-known afflictions rather than every weak placement.
-          </p>
+          </InfoNote>
         </div>
       )}
 
@@ -241,7 +245,7 @@ export default function TransitPanel({ natalChart }) {
             </p>
           ) : (
             <div className="planet-table-wrapper">
-              <table className="planet-table">
+              <table className="planet-table transit-aspect-table">
                 <thead>
                   <tr>
                     <th>Transiting</th>
@@ -255,19 +259,23 @@ export default function TransitPanel({ natalChart }) {
                 <tbody>
                   {exactAspects.map((a, i) => (
                     <tr key={i}>
-                      <td>{a.planet}</td>
-                      <td>{a.label}</td>
-                      <td>{a.natalPoint}</td>
-                      <td>{formatDegree(a.orbDeg)}</td>
-                      <td className={a.applying ? 'transit-aspect-applying' : ''}>{a.timingLabel}</td>
-                      <td className="transit-aspect-meaning">{a.meaning}</td>
+                      <td data-label="Transiting">{a.planet}</td>
+                      <td data-label="Aspect">{a.label}</td>
+                      <td data-label="Natal Point">{a.natalPoint}</td>
+                      <td data-label="Orb">{formatDegree(a.orbDeg)}</td>
+                      <td data-label="Timing" className={a.applying ? 'transit-aspect-applying' : ''}>
+                        {a.timingLabel}
+                      </td>
+                      <td data-label="What to Watch For" className="transit-aspect-meaning">
+                        {a.meaning}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
           )}
-          <p className="transit-nakshatra-note">
+          <InfoNote className="transit-nakshatra-note">
             This is a sharper, degree-based read than the rest of this tab, scoped to the same ~20-day
             window as the Overview outlook: it lines up each transiting graha's exact longitude - and, for
             Mars/Jupiter/Saturn, the exact degree its classical special aspects fall on - against your
@@ -279,7 +287,7 @@ export default function TransitPanel({ natalChart }) {
             touching, not what will definitely happen. Timing estimates are a straight-line projection
             from the current rate of motion, so they get less reliable the further out they are,
             especially near a planet's station (retrograde turn).
-          </p>
+          </InfoNote>
         </div>
       )}
     </div>
