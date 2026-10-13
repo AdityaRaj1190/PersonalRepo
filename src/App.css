@@ -1320,3 +1320,45 @@ button[type='submit']:disabled {
 .varga-reading-tone-challenging {
   color: var(--danger);
 }
+
+.info-note {
+  margin: 12px 0 0;
+}
+
+.info-note > summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+  list-style: none;
+  user-select: none;
+}
+
+.info-note > summary::-webkit-details-marker {
+  display: none;
+}
+
+.info-note > summary::before {
+  content: 'i';
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  font-size: 11px;
+  font-style: italic;
+  font-family: Georgia, serif;
+}
+
+.info-note[open] > summary {
+  margin-bottom: 6px;
+}
+
+.info-note > p {
+  margin: 0;
+}

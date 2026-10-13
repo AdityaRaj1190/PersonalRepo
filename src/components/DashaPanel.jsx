@@ -7,6 +7,7 @@ import {
   gocharaSnapshotForDashaLord,
   isDashaPeriodCurrent,
 } from '../lib/astro';
+import InfoNote from './InfoNote';
 
 const YEAR_MS = 365.2425 * 24 * 60 * 60 * 1000;
 
@@ -233,7 +234,7 @@ export default function DashaPanel({ natalChart, birthUtcDate }) {
         </table>
       </div>
 
-      <p className="transit-nakshatra-note">
+      <InfoNote className="transit-nakshatra-note">
         Vimshottari Dasha is a fixed 120-year cycle split among the 9 grahas, starting from wherever the
         Moon sat in its birth nakshatra - so the first Mahadasha shown is only its remaining balance, not
         a full period. Each level (Mahadasha, Antardasha, Pratyantardasha) is the same proportional split
@@ -242,7 +243,7 @@ export default function DashaPanel({ natalChart, birthUtcDate }) {
         lord is transiting - from your natal Moon - at the moment that sub-sub-period opens: a classical
         cross-check for how a period actually tends to feel, since a graha whose own dasha is running can
         still be transiting a difficult house when it starts.
-      </p>
+      </InfoNote>
     </div>
   );
 }

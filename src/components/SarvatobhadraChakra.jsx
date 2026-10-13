@@ -18,6 +18,7 @@ import {
   sarvatobhadraQueenMoves,
   sarvatobhadraVedhaCells,
 } from '../lib/chartLayout';
+import InfoNote from './InfoNote';
 
 const CELL = 40;
 const SIZE = SARVATOBHADRA_GRID_SIZE * CELL;
@@ -342,7 +343,7 @@ export default function SarvatobhadraChakra({ natalChart }) {
       )}
       {mode === 'gochara' && <GocharaVedhaPanel entries={gocharaVedha} />}
 
-      <p className="sarvatobhadra-note">
+      <InfoNote className="sarvatobhadra-note">
         Border: the 28 nakshatras (27 plus Abhijit), showing which graha(s) transit each one right now
         (parentheses = retrograde) and which of your own natal points (&quot;N: ...&quot;) sit there.
         Inner diamond: the 12 rashis, with your Lagna highlighted. {MODE_NOTES[mode]} &quot;Highlight
@@ -353,7 +354,7 @@ export default function SarvatobhadraChakra({ natalChart }) {
         geometry against published worked examples; the inner diamond&apos;s rashi grouping remains a
         simplified, teaching-level layout rather than one classical text&apos;s exact cell placement,
         which varies by source.
-      </p>
+      </InfoNote>
     </div>
   );
 }
