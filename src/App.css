@@ -1362,3 +1362,25 @@ button[type='submit']:disabled {
 .info-note > p {
   margin: 0;
 }
+
+.varsha-year-nav {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.varsha-year-nav button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.varsha-summary-line {
+  margin: 4px 0 0;
+  font-size: 14px;
+  color: var(--text-h);
+  max-width: 620px;
+}
+
+.varsha-pointers {
+  margin: 16px 0 4px;
+}
