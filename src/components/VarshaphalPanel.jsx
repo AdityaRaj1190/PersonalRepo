@@ -125,7 +125,7 @@ export default function VarshaphalPanel({ natalChart, birthUtcDate, location }) 
         </div>
       </div>
 
-      <ChartDisplay panels={[{ chart: varsha.chart, title: `Varsha chart · ${varsha.startDate.getFullYear()}` }]} />
+      <ChartDisplay panels={[{ chart: varsha.chart, title: `Varsha chart · from ${formatDate(varsha.startDate)}` }]} />
 
       <h4 className="transit-outlook-title">Office-bearers (Pancha-adhikaris)</h4>
       <div className="planet-table-wrapper">
