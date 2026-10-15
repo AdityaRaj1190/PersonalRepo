@@ -1313,7 +1313,8 @@ button[type='submit']:disabled {
   color: var(--text);
 }
 
-.varga-reading-tone-needsEffort {
+.varga-reading-tone-needsEffort,
+.varga-reading-tone-mixed {
   color: var(--debilitated);
 }
 
@@ -1361,4 +1362,148 @@ button[type='submit']:disabled {
 
 .info-note > p {
   margin: 0;
+}
+
+.varsha-year-nav {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.varsha-year-nav button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.varsha-summary-line {
+  margin: 4px 0 0;
+  font-size: 14px;
+  color: var(--text-h);
+  max-width: 620px;
+}
+
+.varsha-facts {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 6px 14px;
+  margin: 14px 0 0;
+  font-size: 14px;
+}
+
+.varsha-facts dt {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.varsha-facts dd {
+  margin: 0;
+  color: var(--text-h);
+}
+
+.varsha-month-jump {
+  font: inherit;
+  font-size: 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin-top: 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--text-h);
+  text-align: left;
+  cursor: pointer;
+}
+
+.varsha-month-jump-link {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.varsha-months {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.varsha-month {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+  padding: 8px 12px;
+}
+
+.varsha-month-current {
+  border-color: var(--accent-border);
+  background: var(--accent-bg);
+}
+
+.varsha-month > summary {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 10px;
+  align-items: baseline;
+  cursor: pointer;
+  list-style: none;
+}
+
+.varsha-month > summary::-webkit-details-marker {
+  display: none;
+}
+
+.varsha-month-range {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.varsha-month-range::before {
+  content: '▸ ';
+  color: var(--accent);
+  font-size: 11px;
+}
+
+.varsha-month[open] .varsha-month-range::before {
+  content: '▾ ';
+}
+
+.varsha-month-tone {
+  font-size: 13px;
+  font-weight: 600;
+  text-align: right;
+}
+
+.varsha-month-dasha {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: 12px;
+  color: var(--text);
+}
+
+.varsha-month-handover {
+  margin-top: 6px;
+}
+
+.varsha-month-line {
+  margin: 8px 0 0;
+  font-size: 14px;
+  color: var(--text-h);
+  max-width: 680px;
+}
+
+.varsha-officer-note {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: var(--text);
+}
+
+@media (max-width: 560px) {
+  .varsha-officer-why {
+    display: none;
+  }
 }

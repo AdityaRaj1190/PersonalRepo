@@ -1895,3 +1895,337 @@ export function personalNakshatraRoles(natalMoonNakshatra) {
     Abhijit: { role: 'Abhijit', meaning: 'classically the point of confinement - feeling boxed in' },
   };
 }
+
+/**
+ * Varshaphal (Tajika annual chart): the chart cast for the moment the Sun
+ * returns to its exact natal sidereal (Lahiri) longitude each year. Like the
+ * birth chart it is read whole-sign from its own Ascendant (the Varsha
+ * Lagna), and it is cast for the birth place - classical texts prefer the
+ * place the person lives at the return, which this app doesn't ask for.
+ */
+const SIDEREAL_YEAR_DAYS = 365.256363;
+
+function siderealSunLongitude(date) {
+  return normalizeDegrees(tropicalLongitude('Sun', date) - lahiriAyanamsa(toJulianDay(date)));
+}
+
+/** The moment the Sun is back at `targetLongitude`, searched from a first guess a few days off. */
+function solarReturnNear(targetLongitude, guess) {
+  let t = guess.getTime();
+  for (let i = 0; i < 20; i++) {
+    let diff = targetLongitude - siderealSunLongitude(new Date(t));
+    if (diff > 180) diff -= 360;
+    if (diff < -180) diff += 360;
+    if (Math.abs(diff) < 1e-7) break;
+    // The Sun moves ~0.9856 deg/day; measure the actual rate locally
+    // rather than assume it, since it varies ~3% over the year.
+    const rate = angularSeparation(siderealSunLongitude(new Date(t + DAY_MS)), siderealSunLongitude(new Date(t)));
+    t += (diff / rate) * DAY_MS;
+  }
+  return new Date(t);
+}
+
+/** Solar return for the year starting after `completedYears` full years of life. */
+function solarReturnForYear(natalChart, birthUtcDate, completedYears) {
+  const natalSun = natalChart.planets.find((p) => p.planet === 'Sun').longitude;
+  if (completedYears === 0) return birthUtcDate;
+  const guess = new Date(birthUtcDate.getTime() + completedYears * SIDEREAL_YEAR_DAYS * DAY_MS);
+  return solarReturnNear(natalSun, guess);
+}
+
+/** How many full solar years have run by `date` - i.e. which Varsha is in force then. */
+export function completedYearsAt(natalChart, birthUtcDate, date) {
+  let n = Math.max(0, Math.floor((date - birthUtcDate) / (SIDEREAL_YEAR_DAYS * DAY_MS)));
+  while (n > 0 && solarReturnForYear(natalChart, birthUtcDate, n) > date) n -= 1;
+  while (solarReturnForYear(natalChart, birthUtcDate, n + 1) <= date) n += 1;
+  return n;
+}
+
+/**
+ * Tri-Rashi Pati: the Tajika lord of each Varsha Lagna sign, which depends
+ * on whether the year began by day or by night (Tajika Neelakanthi).
+ */
+const TRI_RASHI_PATI = [
+  { day: 'Sun', night: 'Jupiter' }, // Aries
+  { day: 'Venus', night: 'Moon' }, // Taurus
+  { day: 'Saturn', night: 'Mercury' }, // Gemini
+  { day: 'Venus', night: 'Mars' }, // Cancer
+  { day: 'Jupiter', night: 'Sun' }, // Leo
+  { day: 'Moon', night: 'Venus' }, // Virgo
+  { day: 'Mercury', night: 'Saturn' }, // Libra
+  { day: 'Mars', night: 'Venus' }, // Scorpio
+  { day: 'Saturn', night: 'Saturn' }, // Sagittarius
+  { day: 'Mars', night: 'Mars' }, // Capricorn
+  { day: 'Jupiter', night: 'Jupiter' }, // Aquarius
+  { day: 'Moon', night: 'Moon' }, // Pisces
+];
+
+/**
+ * Tajika aspects are counted sign to sign: a planet sees the 3rd, 5th, 9th
+ * and 11th signs from itself (friendly) and the 4th, 7th and 10th
+ * (inimical), but never the 2nd, 6th, 8th or 12th. A planet in the Lagna
+ * itself is treated as fully connected to it.
+ */
+const TAJIKA_ASPECT_COUNTS = new Set([1, 3, 4, 5, 7, 9, 10, 11]);
+
+function tajikaSeesLagna(p, lagnaRashi) {
+  return TAJIKA_ASPECT_COUNTS.has(((lagnaRashi - p.rashi + 12) % 12) + 1);
+}
+
+/**
+ * A simplified stand-in for Pancha-Vargiya Bala, used only to pick between
+ * year-lord candidates: dignity (exalted/own sign vs. debilitated), house
+ * strength (angles strongest, the 6th/8th/12th weakest), and combustion.
+ */
+function varshaCandidateStrength(p) {
+  let score = 0;
+  if (p.exalted) score += 3;
+  else if (RASHI_LORDS[p.rashi] === p.planet) score += 2;
+  if (p.debilitated) score -= 3;
+  if (KENDRA_HOUSES.includes(p.house)) score += 2;
+  else if ([2, 5, 8, 11].includes(p.house)) score += 1;
+  if (DUSTHANA_HOUSES.includes(p.house)) score -= 1;
+  if (p.combust) score -= 2;
+  return score;
+}
+
+/** Houses classically good for Muntha (9-11 best, then 1-3 and 5) vs. trying (4, 6, 7, 8, 12). */
+const MUNTHA_HOUSE_NATURE = {
+  1: 'favorable', 2: 'favorable', 3: 'favorable', 5: 'favorable',
+  9: 'favorable', 10: 'favorable', 11: 'favorable',
+  4: 'challenging', 6: 'challenging', 7: 'challenging', 8: 'challenging', 12: 'challenging',
+};
+
+/** "Wealth, family, speech" -> "wealth, family and speech", to sit mid-sentence. */
+function areaPhrase(house) {
+  return HOUSE_AREA_OF_INFLUENCE[house].toLowerCase().replace(/, ([^,]+)$/, ' and $1');
+}
+
+const VARSHA_PLANET_YEAR = {
+  Sun: 'recognition, authority and dealings with people in power',
+  Moon: 'emotional life, home, travel and public contact',
+  Mars: 'energy, ambition, property and competitive drive',
+  Mercury: 'learning, writing, trade and quick decisions',
+  Jupiter: 'growth, guidance, study and good fortune',
+  Venus: 'relationships, comfort, art and money',
+  Saturn: 'hard work, patience and long-term responsibility',
+};
+
+/**
+ * Compute the Varshaphal for the Varsha that begins after `completedYears`
+ * full years of life: the annual chart itself, Muntha, the five
+ * office-bearers (Pancha-adhikaris) and the year lord chosen from them.
+ * @param {ReturnType<typeof computeBirthChart>} natalChart
+ * @param {Date} birthUtcDate
+ * @param {number} latitude
+ * @param {number} longitude
+ * @param {number} completedYears - 0 for the year starting at birth
+ */
+export function computeVarshaphal(natalChart, birthUtcDate, latitude, longitude, completedYears) {
+  const startDate = solarReturnForYear(natalChart, birthUtcDate, completedYears);
+  const endDate = solarReturnForYear(natalChart, birthUtcDate, completedYears + 1);
+  const chart = computeBirthChart(startDate, latitude, longitude);
+  const lagnaRashi = chart.ascendant.rashi;
+  const sun = chart.planets.find((p) => p.planet === 'Sun');
+  const moon = chart.planets.find((p) => p.planet === 'Moon');
+
+  // The Sun is above the horizon when it lies on the ecliptic arc running
+  // back from the Ascendant through the Midheaven to the Descendant.
+  const isDayBirth = normalizeDegrees(chart.ascendant.longitude - sun.longitude) < 180;
+
+  // Muntha starts in the natal Lagna sign and moves one sign per year.
+  const munthaRashi = (natalChart.ascendant.rashi + completedYears) % 12;
+  const munthaHouse = ((munthaRashi - lagnaRashi + 12) % 12) + 1;
+  const munthaLord = RASHI_LORDS[munthaRashi];
+
+  const officeBearers = [
+    { role: 'Janma Lagna lord', detail: `lord of your birth Lagna, ${natalChart.ascendant.rashiName}`, planet: RASHI_LORDS[natalChart.ascendant.rashi] },
+    { role: 'Varsha Lagna lord', detail: `lord of this year's Lagna, ${RASHIS[lagnaRashi]}`, planet: RASHI_LORDS[lagnaRashi] },
+    { role: 'Muntha lord', detail: `lord of the Muntha sign, ${RASHIS[munthaRashi]}`, planet: munthaLord },
+    {
+      role: 'Tri-Rashi Pati',
+      detail: `Tajika ${isDayBirth ? 'day' : 'night'} lord of ${RASHIS[lagnaRashi]}`,
+      planet: TRI_RASHI_PATI[lagnaRashi][isDayBirth ? 'day' : 'night'],
+    },
+    {
+      role: isDayBirth ? 'Day lord' : 'Night lord',
+      detail: isDayBirth
+        ? `the year began by day, so the lord of the Sun's sign, ${sun.rashiName}`
+        : `the year began by night, so the lord of the Moon's sign, ${moon.rashiName}`,
+      planet: RASHI_LORDS[isDayBirth ? sun.rashi : moon.rashi],
+    },
+  ].map((o) => {
+    const p = chart.planets.find((q) => q.planet === o.planet);
+    return { ...o, house: p.house, seesLagna: tajikaSeesLagna(p, lagnaRashi), strength: varshaCandidateStrength(p) };
+  });
+
+  // The year lord is the strongest office-bearer that aspects the Varsha
+  // Lagna; if none does, the strongest of all. Ties go to the Muntha lord,
+  // then to the order the office-bearers are listed in.
+  const pool = officeBearers.some((o) => o.seesLagna) ? officeBearers.filter((o) => o.seesLagna) : officeBearers;
+  const yearLordEntry = pool.reduce((best, o) => {
+    if (o.strength > best.strength) return o;
+    if (o.strength === best.strength && o.planet === munthaLord && best.planet !== munthaLord) return o;
+    return best;
+  });
+  const yearLord = chart.planets.find((p) => p.planet === yearLordEntry.planet);
+  const yearLordWell = yearLordEntry.strength >= 2;
+  const yearLordWeak = yearLordEntry.strength < 0;
+
+  const munthaNature = MUNTHA_HOUSE_NATURE[munthaHouse];
+  const munthaArea = areaPhrase(munthaHouse);
+  const yearLordArea = areaPhrase(yearLord.house);
+
+  const summary = [
+    `${yearLord.planet} rules this year, putting ${VARSHA_PLANET_YEAR[yearLord.planet]} at the centre of it. ` +
+      `It sits in the ${ordinal(yearLord.house)} house of the annual chart, so the year's main action plays out around ${yearLordArea}` +
+      (yearLordWell ? ', and it is well placed to deliver.' : yearLordWeak ? ', but it is weakly placed, so results take more effort.' : '.'),
+    munthaNature === 'favorable'
+      ? `Muntha falls in the ${ordinal(munthaHouse)} house (${RASHIS[munthaRashi]}), a supportive spot that favours ${munthaArea}.`
+      : `Muntha falls in the ${ordinal(munthaHouse)} house (${RASHIS[munthaRashi]}), a testing spot, so go carefully with ${munthaArea}.`,
+  ];
+
+  return {
+    completedYears,
+    yearNumber: completedYears + 1,
+    startDate,
+    endDate,
+    chart,
+    isDayBirth,
+    muntha: {
+      rashi: munthaRashi,
+      rashiName: RASHIS[munthaRashi],
+      house: munthaHouse,
+      lord: munthaLord,
+      nature: munthaNature,
+      area: HOUSE_AREA_OF_INFLUENCE[munthaHouse],
+    },
+    officeBearers,
+    yearLord: {
+      planet: yearLord.planet,
+      house: yearLord.house,
+      rashiName: yearLord.rashiName,
+      roles: officeBearers.filter((o) => o.planet === yearLord.planet).map((o) => o.role),
+      fallback: pool === officeBearers && !officeBearers.some((o) => o.seesLagna),
+      verdict: yearLordWell ? 'favorable' : yearLordWeak ? 'challenging' : 'neutral',
+      theme: VARSHA_PLANET_YEAR[yearLord.planet],
+    },
+    summary,
+  };
+}
+
+const VARSHA_MONTH_TONES = {
+  favorable: 'Supportive month',
+  mixed: 'Mixed month',
+  challenging: 'Demanding month',
+};
+
+const PLACEMENT_SCORE = { supportive: 1, neutral: 0, needsEffort: -1 };
+const GOCHARA_PHRASE = { favorable: 'is favourable', 'mixed signals': 'gives mixed signals', 'use caution': 'calls for caution' };
+const GOCHARA_SCORE = { favorable: 1, 'mixed signals': 0, 'use caution': -1 };
+
+function overlapMs(period, start, end) {
+  return Math.max(0, Math.min(period.endDate, end) - Math.max(period.startDate, start));
+}
+
+function shortDayMonth(date) {
+  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}
+
+/**
+ * Month-by-month reading of a Varsha year. Each month is a Tajika
+ * Masa-Pravesha month: it opens when the Sun has moved a further 30 degrees
+ * on from its natal sidereal longitude, so month 1 starts at the solar
+ * return itself and the twelve months tile the year exactly.
+ *
+ * Every month is tied to the Vimshottari Antardasha and Pratyantardasha
+ * running through it and read on three things, weighted in this order:
+ * how well the main Pratyantardasha lord is placed in this year's chart
+ * (where the month's events gather), the same for the Antardasha lord (the
+ * backdrop), and the Pratyantardasha lord's own Gochara from the natal Moon
+ * at mid-month. The Sun's house in the annual chart that month names the
+ * area that is lit up regardless of the dashas.
+ * @param {ReturnType<typeof computeBirthChart>} natalChart
+ * @param {Date} birthUtcDate
+ * @param {ReturnType<typeof computeVarshaphal>} varsha
+ */
+export function computeVarshaMonths(natalChart, birthUtcDate, varsha) {
+  const natalSun = natalChart.planets.find((p) => p.planet === 'Sun').longitude;
+  const chart = varsha.chart;
+  const placement = (planet) => chart.planets.find((p) => p.planet === planet);
+  const mahadashas = computeVimshottariMahadashas(natalChart, birthUtcDate);
+  const antardashas = mahadashas.flatMap((m) => m.antardashas.map((a) => ({ ...a, mahaLord: m.lord })));
+  const yearSpanMs = varsha.endDate - varsha.startDate;
+
+  const starts = Array.from({ length: 12 }, (_, k) =>
+    k === 0
+      ? varsha.startDate
+      : solarReturnNear(normalizeDegrees(natalSun + 30 * k), new Date(varsha.startDate.getTime() + (k / 12) * yearSpanMs)),
+  );
+
+  return starts.map((startDate, k) => {
+    const endDate = k < 11 ? starts[k + 1] : varsha.endDate;
+    const mid = new Date((startDate.getTime() + endDate.getTime()) / 2);
+
+    const antars = antardashas.filter((a) => overlapMs(a, startDate, endDate) > 0);
+    const pratys = antars
+      .flatMap((a) => computePratyantardashas(a, birthUtcDate).map((p) => ({ ...p, antarLord: a.lord, mahaLord: a.mahaLord })))
+      .filter((p) => overlapMs(p, startDate, endDate) > 0);
+    const main = pratys.reduce((best, p) =>
+      overlapMs(p, startDate, endDate) > overlapMs(best, startDate, endDate) ? p : best,
+    );
+
+    const pratyPlacement = placement(main.lord);
+    const antarPlacement = placement(main.antarLord);
+    const pratyVerdict = readingPlacement(pratyPlacement).verdict;
+    const antarVerdict = readingPlacement(antarPlacement).verdict;
+    const gochara = gocharaSnapshotForDashaLord(natalChart, main.lord, mid);
+
+    const score = 2 * PLACEMENT_SCORE[pratyVerdict] + PLACEMENT_SCORE[antarVerdict] + GOCHARA_SCORE[gochara.overall];
+    const tone = score >= 2 ? 'favorable' : score <= -2 ? 'challenging' : 'mixed';
+
+    const sunRashi = rashiOf(natalSun + 30 * k + 15);
+    const sunHouse = ((sunRashi - chart.ascendant.rashi + 12) % 12) + 1;
+
+    const rolesOf = (planet) => {
+      const roles = [];
+      if (planet === varsha.yearLord.planet) roles.push('the year lord');
+      if (planet === varsha.muntha.lord) roles.push('the Muntha lord');
+      return roles.length ? ` (also ${roles.join(' and ')})` : '';
+    };
+    const qualityNote = (verdict, good, hard) => (verdict === 'supportive' ? good : verdict === 'needsEffort' ? hard : '');
+
+    const lines = [
+      `${main.lord}${rolesOf(main.lord)} runs the Pratyantardasha from the ${ordinal(pratyPlacement.house)} house of this year's chart, ` +
+        `so the month's events gather around ${areaPhrase(pratyPlacement.house)}` +
+        `${qualityNote(pratyVerdict, ', and it is well placed to help.', ', where it is under pressure.') || '.'}`,
+      main.antarLord === main.lord
+        ? `The ${main.antarLord} Antardasha is in its own opening stretch, which doubles that emphasis.`
+        : `In the background, the ${main.antarLord} Antardasha${rolesOf(main.antarLord)} keeps ${areaPhrase(antarPlacement.house)} in play` +
+          `${qualityNote(antarVerdict, ' with support.', ', which needs steady effort.') || '.'}`,
+      `${main.lord}'s own transit ${GOCHARA_PHRASE[gochara.overall]} this month, and the Sun lights up your ${ordinal(sunHouse)} house (${areaPhrase(sunHouse)}).`,
+    ];
+
+    // Name every Pratyantardasha that touches the month, with its handover dates.
+    const pratyTimeline = pratys.map((p, i) => ({
+      lord: p.lord,
+      antarLord: p.antarLord,
+      label: i === 0 ? (pratys.length > 1 ? `until ${shortDayMonth(p.endDate)}` : 'all month') : `from ${shortDayMonth(p.startDate)}`,
+    }));
+
+    return {
+      index: k,
+      startDate,
+      endDate,
+      sunRashiName: RASHIS[sunRashi],
+      sunHouse,
+      mahaLord: main.mahaLord,
+      antarLord: main.antarLord,
+      pratyLord: main.lord,
+      pratyTimeline,
+      tone,
+      toneLabel: VARSHA_MONTH_TONES[tone],
+      lines,
+    };
+  });
+}
