@@ -1313,7 +1313,8 @@ button[type='submit']:disabled {
   color: var(--text);
 }
 
-.varga-reading-tone-needsEffort {
+.varga-reading-tone-needsEffort,
+.varga-reading-tone-mixed {
   color: var(--debilitated);
 }
 
@@ -1383,4 +1384,76 @@ button[type='submit']:disabled {
 
 .varsha-pointers {
   margin: 16px 0 4px;
+}
+
+.varsha-months {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.varsha-month {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+  padding: 10px 12px;
+}
+
+.varsha-month-current {
+  border-color: var(--accent-border);
+  background: var(--accent-bg);
+}
+
+.varsha-month > summary {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.varsha-month > summary::-webkit-details-marker {
+  display: none;
+}
+
+.varsha-month-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.varsha-month-range {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.varsha-month-range::before {
+  content: '▸ ';
+  color: var(--accent);
+  font-size: 11px;
+}
+
+.varsha-month[open] .varsha-month-range::before {
+  content: '▾ ';
+}
+
+.varsha-month-tone {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.varsha-month-dasha {
+  font-size: 12px;
+  color: var(--text);
+}
+
+.varsha-month-line {
+  margin: 8px 0 0;
+  font-size: 14px;
+  color: var(--text-h);
+  max-width: 680px;
 }

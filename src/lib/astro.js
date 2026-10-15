@@ -1996,6 +1996,11 @@ const MUNTHA_HOUSE_NATURE = {
   4: 'challenging', 6: 'challenging', 7: 'challenging', 8: 'challenging', 12: 'challenging',
 };
 
+/** "Wealth, family, speech" -> "wealth, family and speech", to sit mid-sentence. */
+function areaPhrase(house) {
+  return HOUSE_AREA_OF_INFLUENCE[house].toLowerCase().replace(/, ([^,]+)$/, ' and $1');
+}
+
 const VARSHA_PLANET_YEAR = {
   Sun: 'recognition, authority and dealings with people in power',
   Moon: 'emotional life, home, travel and public contact',
@@ -2068,8 +2073,6 @@ export function computeVarshaphal(natalChart, birthUtcDate, latitude, longitude,
   const yearLordWeak = yearLordEntry.strength < 0;
 
   const munthaNature = MUNTHA_HOUSE_NATURE[munthaHouse];
-  // "Wealth, family, speech" -> "wealth, family and speech", to sit mid-sentence.
-  const areaPhrase = (house) => HOUSE_AREA_OF_INFLUENCE[house].toLowerCase().replace(/, ([^,]+)$/, ' and $1');
   const munthaArea = areaPhrase(munthaHouse);
   const yearLordArea = areaPhrase(yearLord.house);
 
@@ -2109,4 +2112,120 @@ export function computeVarshaphal(natalChart, birthUtcDate, latitude, longitude,
     },
     summary,
   };
+}
+
+const VARSHA_MONTH_TONES = {
+  favorable: 'Supportive month',
+  mixed: 'Mixed month',
+  challenging: 'Demanding month',
+};
+
+const PLACEMENT_SCORE = { supportive: 1, neutral: 0, needsEffort: -1 };
+const GOCHARA_PHRASE = { favorable: 'is favourable', 'mixed signals': 'gives mixed signals', 'use caution': 'calls for caution' };
+const GOCHARA_SCORE = { favorable: 1, 'mixed signals': 0, 'use caution': -1 };
+
+function overlapMs(period, start, end) {
+  return Math.max(0, Math.min(period.endDate, end) - Math.max(period.startDate, start));
+}
+
+function shortDayMonth(date) {
+  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}
+
+/**
+ * Month-by-month reading of a Varsha year. Each month is a Tajika
+ * Masa-Pravesha month: it opens when the Sun has moved a further 30 degrees
+ * on from its natal sidereal longitude, so month 1 starts at the solar
+ * return itself and the twelve months tile the year exactly.
+ *
+ * Every month is tied to the Vimshottari Antardasha and Pratyantardasha
+ * running through it and read on three things, weighted in this order:
+ * how well the main Pratyantardasha lord is placed in this year's chart
+ * (where the month's events gather), the same for the Antardasha lord (the
+ * backdrop), and the Pratyantardasha lord's own Gochara from the natal Moon
+ * at mid-month. The Sun's house in the annual chart that month names the
+ * area that is lit up regardless of the dashas.
+ * @param {ReturnType<typeof computeBirthChart>} natalChart
+ * @param {Date} birthUtcDate
+ * @param {ReturnType<typeof computeVarshaphal>} varsha
+ */
+export function computeVarshaMonths(natalChart, birthUtcDate, varsha) {
+  const natalSun = natalChart.planets.find((p) => p.planet === 'Sun').longitude;
+  const chart = varsha.chart;
+  const placement = (planet) => chart.planets.find((p) => p.planet === planet);
+  const mahadashas = computeVimshottariMahadashas(natalChart, birthUtcDate);
+  const antardashas = mahadashas.flatMap((m) => m.antardashas.map((a) => ({ ...a, mahaLord: m.lord })));
+  const yearSpanMs = varsha.endDate - varsha.startDate;
+
+  const starts = Array.from({ length: 12 }, (_, k) =>
+    k === 0
+      ? varsha.startDate
+      : solarReturnNear(normalizeDegrees(natalSun + 30 * k), new Date(varsha.startDate.getTime() + (k / 12) * yearSpanMs)),
+  );
+
+  return starts.map((startDate, k) => {
+    const endDate = k < 11 ? starts[k + 1] : varsha.endDate;
+    const mid = new Date((startDate.getTime() + endDate.getTime()) / 2);
+
+    const antars = antardashas.filter((a) => overlapMs(a, startDate, endDate) > 0);
+    const pratys = antars
+      .flatMap((a) => computePratyantardashas(a, birthUtcDate).map((p) => ({ ...p, antarLord: a.lord, mahaLord: a.mahaLord })))
+      .filter((p) => overlapMs(p, startDate, endDate) > 0);
+    const main = pratys.reduce((best, p) =>
+      overlapMs(p, startDate, endDate) > overlapMs(best, startDate, endDate) ? p : best,
+    );
+
+    const pratyPlacement = placement(main.lord);
+    const antarPlacement = placement(main.antarLord);
+    const pratyVerdict = readingPlacement(pratyPlacement).verdict;
+    const antarVerdict = readingPlacement(antarPlacement).verdict;
+    const gochara = gocharaSnapshotForDashaLord(natalChart, main.lord, mid);
+
+    const score = 2 * PLACEMENT_SCORE[pratyVerdict] + PLACEMENT_SCORE[antarVerdict] + GOCHARA_SCORE[gochara.overall];
+    const tone = score >= 2 ? 'favorable' : score <= -2 ? 'challenging' : 'mixed';
+
+    const sunRashi = rashiOf(natalSun + 30 * k + 15);
+    const sunHouse = ((sunRashi - chart.ascendant.rashi + 12) % 12) + 1;
+
+    const rolesOf = (planet) => {
+      const roles = [];
+      if (planet === varsha.yearLord.planet) roles.push('the year lord');
+      if (planet === varsha.muntha.lord) roles.push('the Muntha lord');
+      return roles.length ? ` (also ${roles.join(' and ')})` : '';
+    };
+    const qualityNote = (verdict, good, hard) => (verdict === 'supportive' ? good : verdict === 'needsEffort' ? hard : '');
+
+    const lines = [
+      `${main.lord}${rolesOf(main.lord)} runs the Pratyantardasha from the ${ordinal(pratyPlacement.house)} house of this year's chart, ` +
+        `so the month's events gather around ${areaPhrase(pratyPlacement.house)}` +
+        `${qualityNote(pratyVerdict, ', and it is well placed to help.', ', where it is under pressure.') || '.'}`,
+      main.antarLord === main.lord
+        ? `The ${main.antarLord} Antardasha is in its own opening stretch, which doubles that emphasis.`
+        : `In the background, the ${main.antarLord} Antardasha${rolesOf(main.antarLord)} keeps ${areaPhrase(antarPlacement.house)} in play` +
+          `${qualityNote(antarVerdict, ' with support.', ', which needs steady effort.') || '.'}`,
+      `${main.lord}'s own transit ${GOCHARA_PHRASE[gochara.overall]} this month, and the Sun lights up your ${ordinal(sunHouse)} house (${areaPhrase(sunHouse)}).`,
+    ];
+
+    // Name every Pratyantardasha that touches the month, with its handover dates.
+    const pratyTimeline = pratys.map((p, i) => ({
+      lord: p.lord,
+      antarLord: p.antarLord,
+      label: i === 0 ? (pratys.length > 1 ? `until ${shortDayMonth(p.endDate)}` : 'all month') : `from ${shortDayMonth(p.startDate)}`,
+    }));
+
+    return {
+      index: k,
+      startDate,
+      endDate,
+      sunRashiName: RASHIS[sunRashi],
+      sunHouse,
+      mahaLord: main.mahaLord,
+      antarLord: main.antarLord,
+      pratyLord: main.lord,
+      pratyTimeline,
+      tone,
+      toneLabel: VARSHA_MONTH_TONES[tone],
+      lines,
+    };
+  });
 }

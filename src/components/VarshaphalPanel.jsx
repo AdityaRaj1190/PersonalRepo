@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { completedYearsAt, computeVarshaphal } from '../lib/astro';
+import { completedYearsAt, computeVarshaMonths, computeVarshaphal } from '../lib/astro';
 import ChartDisplay from './ChartDisplay';
 import InfoNote from './InfoNote';
 
@@ -23,14 +23,20 @@ function formatDate(date) {
   return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
 }
 
+function formatShort(date) {
+  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}
+
 const MUNTHA_VERDICT = { favorable: 'Supportive house', challenging: 'Testing house' };
 const YEAR_LORD_VERDICT = { favorable: 'Well placed', neutral: 'Moderately placed', challenging: 'Weakly placed' };
 
 /**
  * Varshaphal: the Tajika annual chart for the year of life currently
  * running, with one-tap navigation to the years either side. Leads with a
- * plain-language read of the year (year lord and Muntha), then the chart,
- * then the five office-bearers the year lord was chosen from.
+ * plain-language read of the year (year lord and Muntha),
+ * then a month-by-month reading tied to the running Antardasha and
+ * Pratyantardasha, then the chart and the five office-bearers the year
+ * lord was chosen from.
  */
 export default function VarshaphalPanel({ natalChart, birthUtcDate, location }) {
   const currentYears = useMemo(
@@ -43,7 +49,13 @@ export default function VarshaphalPanel({ natalChart, birthUtcDate, location }) 
     () => computeVarshaphal(natalChart, birthUtcDate, location.lat, location.lon, completedYears),
     [natalChart, birthUtcDate, location, completedYears],
   );
+  const months = useMemo(
+    () => computeVarshaMonths(natalChart, birthUtcDate, varsha),
+    [natalChart, birthUtcDate, varsha],
+  );
   const isCurrent = completedYears === currentYears;
+  const now = new Date();
+  const currentMonth = isCurrent ? months.find((m) => now >= m.startDate && now < m.endDate) : null;
   const { yearLord, muntha } = varsha;
 
   return (
@@ -91,6 +103,13 @@ export default function VarshaphalPanel({ natalChart, birthUtcDate, location }) 
             {sentence}
           </p>
         ))}
+        {currentMonth && (
+          <p className="dasha-current-detail">
+            Running now: {currentMonth.mahaLord} Mahadasha &rarr; {currentMonth.antarLord} Antardasha &rarr;{' '}
+            {currentMonth.pratyLord} Pratyantardasha &middot; month {currentMonth.index + 1}:{' '}
+            {currentMonth.toneLabel.toLowerCase()}
+          </p>
+        )}
       </div>
 
       <div className="varga-reading-pointers varsha-pointers">
@@ -123,6 +142,35 @@ export default function VarshaphalPanel({ natalChart, birthUtcDate, location }) 
             The moment the Sun returned to its exact birth position, cast for your place of birth.
           </p>
         </div>
+      </div>
+
+      <h4 className="transit-outlook-title">Month by Month</h4>
+      <div className="varsha-months">
+        {months.map((m) => {
+          const isNow = m === currentMonth;
+          return (
+            <details className={`varsha-month ${isNow ? 'varsha-month-current' : ''}`} key={m.index} open={isNow}>
+              <summary>
+                <span className="varsha-month-head">
+                  <span className="varsha-month-range">
+                    Month {m.index + 1} &middot; {formatShort(m.startDate)} &ndash; {formatShort(m.endDate)}
+                    {isNow && <span className="dasha-current-tag">Now</span>}
+                  </span>
+                  <span className={`varsha-month-tone varga-reading-tone-${m.tone}`}>{m.toneLabel}</span>
+                </span>
+                <span className="varsha-month-dasha">
+                  {m.antarLord} Antardasha &middot; Pratyantardasha{' '}
+                  {m.pratyTimeline.map((t) => `${t.lord} ${t.label}`).join(', then ')}
+                </span>
+              </summary>
+              {m.lines.map((line) => (
+                <p className="varsha-month-line" key={line}>
+                  {line}
+                </p>
+              ))}
+            </details>
+          );
+        })}
       </div>
 
       <ChartDisplay panels={[{ chart: varsha.chart, title: `Varsha chart · from ${formatDate(varsha.startDate)}` }]} />
@@ -167,6 +215,18 @@ export default function VarshaphalPanel({ natalChart, birthUtcDate, location }) 
         Pancha-Vargiya Bala, so a close call between two candidates can come out differently in other
         software. The chart is cast for your place of birth; classical texts prefer the place you are
         living at the return, which can shift the Varsha Lagna if you have moved far east or west.
+      </InfoNote>
+      <InfoNote className="transit-nakshatra-note" label="How the monthly reading works">
+        Each month is a Tajika solar month: it starts when the Sun has moved another 30 degrees on from its
+        birth position, so month 1 opens at the solar return and the twelve months fill the year exactly
+        (that is why they don't line up with calendar months). Each month is tied to the Vimshottari
+        Antardasha and Pratyantardasha running through it, the same periods shown in the Dasha tab. The
+        Pratyantardasha that covers most of the month leads the reading: its house in this year's chart
+        says where the month's events gather, and whether it is well placed there counts most towards the
+        month's tone. The Antardasha lord's house in the same chart is the backdrop, and the
+        Pratyantardasha lord's own transit from your natal Moon at mid-month nudges the tone either way.
+        The Sun's house shows which part of life is in the spotlight that month regardless of the dashas.
+        Treat it as where to focus, not a prediction of specific events.
       </InfoNote>
     </div>
   );
