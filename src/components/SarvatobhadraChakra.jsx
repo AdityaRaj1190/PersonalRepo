@@ -50,6 +50,29 @@ const borderCellByNakshatra = SARVATOBHADRA_BORDER_CELLS.reduce((map, c) => {
   return map;
 }, {});
 
+// What sits in each cell of the grid, keyed "row,col", so the selected-cell
+// panel can name every cell along a Queen's-move line. Corners, the centre and
+// the blank cells between the border and the diamond carry nothing to read.
+const CELL_CONTENTS = {};
+for (const c of SARVATOBHADRA_BORDER_CELLS) {
+  CELL_CONTENTS[`${c.row},${c.col}`] = { kind: 'nakshatra', nakshatra: c.nakshatra };
+}
+for (const c of SARVATOBHADRA_RASHI_CELLS) {
+  CELL_CONTENTS[`${c.row},${c.col}`] = { kind: 'rashi', rashi: c.rashi };
+}
+
+// The eight Queen's-move directions, in the order they're listed in the panel.
+const DIRECTIONS = [
+  { label: 'Up', arrow: '↑', dr: -1, dc: 0 },
+  { label: 'Down', arrow: '↓', dr: 1, dc: 0 },
+  { label: 'Left', arrow: '←', dr: 0, dc: -1 },
+  { label: 'Right', arrow: '→', dr: 0, dc: 1 },
+  { label: 'Up-left', arrow: '↖', dr: -1, dc: -1 },
+  { label: 'Up-right', arrow: '↗', dr: -1, dc: 1 },
+  { label: 'Down-left', arrow: '↙', dr: 1, dc: -1 },
+  { label: 'Down-right', arrow: '↘', dr: 1, dc: 1 },
+];
+
 const VEDHA_MODES = [
   { id: 'sun', label: "Sun's Vedha" },
   { id: 'nakshatra', label: 'Nakshatra Vedha' },
@@ -327,21 +350,37 @@ export default function SarvatobhadraChakra({ natalChart }) {
 
       {pickingCell && <p className="sarvatobhadra-picking-hint">Click any cell in the grid above.</p>}
 
-      {mode === 'sun' && (
-        <SunVedhaPanel
-          upagrahas={upagrahas}
-          natalPointsByNakshatra={natalPointsByNakshatra}
+      {manualCell ? (
+        <SelectedCellPanel
+          cell={manualCell}
+          queenMoves={queenMoves}
+          transitPlanets={transit.planets}
+          natalChart={natalChart}
           planetsByNakshatra={planetsByNakshatra}
-        />
-      )}
-      {mode === 'nakshatra' && (
-        <NakshatraVedhaPanel
-          piercersByCell={nakshatraVedha}
           natalPointsByNakshatra={natalPointsByNakshatra}
           personalRoles={personalRoles}
+          upagrahasByNakshatra={mode === 'sun' ? upagrahasByNakshatra : {}}
+          modeLabel={VEDHA_MODES.find((m) => m.id === mode).label}
         />
+      ) : (
+        <>
+        {mode === 'sun' && (
+          <SunVedhaPanel
+            upagrahas={upagrahas}
+            natalPointsByNakshatra={natalPointsByNakshatra}
+            planetsByNakshatra={planetsByNakshatra}
+          />
+        )}
+        {mode === 'nakshatra' && (
+          <NakshatraVedhaPanel
+            piercersByCell={nakshatraVedha}
+            natalPointsByNakshatra={natalPointsByNakshatra}
+            personalRoles={personalRoles}
+          />
+        )}
+        {mode === 'gochara' && <GocharaVedhaPanel entries={gocharaVedha} />}
+        </>
       )}
-      {mode === 'gochara' && <GocharaVedhaPanel entries={gocharaVedha} />}
 
       <InfoNote className="sarvatobhadra-note">
         Border: the 28 nakshatras (27 plus Abhijit), showing which graha(s) transit each one right now
@@ -357,6 +396,170 @@ export default function SarvatobhadraChakra({ natalChart }) {
       </InfoNote>
     </div>
   );
+}
+
+/**
+ * Replaces the mode's "Active right now" panel once the reader picks a cell
+ * with Highlight Select: what sits in that cell, then every Queen's-move line
+ * out of it - which nakshatras and rashis each direction passes through, and
+ * which transiting grahas and natal points sit on them. A transiting graha on
+ * any of those lines is read as piercing the selected cell, using the same
+ * readings (and the same Jupiter exception) as Nakshatra Vedha.
+ */
+function SelectedCellPanel({
+  cell, queenMoves, transitPlanets, natalChart, planetsByNakshatra, natalPointsByNakshatra,
+  personalRoles, upagrahasByNakshatra, modeLabel,
+}) {
+  const describe = (key) => {
+    const content = CELL_CONTENTS[key];
+    if (!content) return null;
+    if (content.kind === 'nakshatra') {
+      const { nakshatra } = content;
+      return {
+        name: nakshatra.trim(),
+        transits: (planetsByNakshatra[nakshatra] ?? []).map((p) => p.planet),
+        natal: natalPointsByNakshatra[nakshatra] ?? [],
+        kind: 'nakshatra',
+        role: personalRoles[nakshatra.trim()] ?? null,
+        tags: upagrahasByNakshatra[nakshatra] ?? [],
+      };
+    }
+    const natal = natalChart.planets.filter((p) => p.rashi === content.rashi).map((p) => p.planet);
+    if (natalChart.ascendant.rashi === content.rashi) natal.push('Ascendant');
+    return {
+      name: RASHIS[content.rashi],
+      transits: transitPlanets.filter((p) => p.rashi === content.rashi).map((p) => p.planet),
+      natal,
+      kind: 'sign',
+      role: null,
+      tags: [],
+    };
+  };
+
+  const here = describe(`${cell.row},${cell.col}`);
+  const last = SARVATOBHADRA_GRID_SIZE - 1;
+
+  const lines = DIRECTIONS.map((d) => {
+    const cells = [];
+    for (let r = cell.row + d.dr, c = cell.col + d.dc; r >= 0 && r <= last && c >= 0 && c <= last; r += d.dr, c += d.dc) {
+      const key = `${r},${c}`;
+      if (!queenMoves?.has(key)) break;
+      const info = describe(key);
+      if (info) cells.push(info);
+    }
+    return { ...d, cells };
+  }).filter((d) => d.cells.length > 0);
+
+  // A graha sitting in both a nakshatra and a rashi on the lines still
+  // pierces only once.
+  const piercers = [...new Set(lines.flatMap((d) => d.cells.flatMap((c) => c.transits)))];
+  const afflicting = piercers.filter((p) => p !== 'Jupiter');
+  const natalOnLines = [...new Set(lines.flatMap((d) => d.cells.flatMap((c) => c.natal)))];
+
+  const where = here ? <strong>{here.name}</strong> : 'this cell';
+
+  return (
+    <div className="sarvatobhadra-upagraha-list sarvatobhadra-selected-panel">
+      <p className="sarvatobhadra-upagraha-heading">
+        Selected: {here ? here.name : emptyCellLabel(cell)}
+      </p>
+
+      {here && (here.transits.length > 0 || here.natal.length > 0 || here.role || here.tags.length > 0) && (
+        <p className="sarvatobhadra-upagraha-item sarvatobhadra-upagraha-item-natal">
+          {here.role && <>{here.role.role} star — {here.role.meaning}. </>}
+          {here.transits.length > 0 && <>Transiting {here.transits.join(', ')} {here.transits.length > 1 ? 'are' : 'is'} here. </>}
+          {here.natal.length > 0 && <>Your natal {here.natal.join(', ')} {here.natal.length > 1 ? 'sit' : 'sits'} here. </>}
+          {here.tags.length > 0 && <>Carries {here.tags.map((t) => `~${t.tag} (${t.label})`).join(', ')} from the Sun right now.</>}
+        </p>
+      )}
+
+      <p className="sarvatobhadra-upagraha-item">
+        {piercers.length === 0 ? (
+          <>No transiting graha sits on any line from {where} right now, so nothing is piercing it.</>
+        ) : (
+          <>
+            {where} is pierced by transiting {piercers.join(', ')}.{' '}
+            {afflicting.length > 0
+              ? NAKSHATRA_VEDHA_SEVERITY[Math.min(afflicting.length, NAKSHATRA_VEDHA_SEVERITY.length) - 1]
+              : 'Only Jupiter reaches it, which is read as helpful rather than an affliction.'}
+          </>
+        )}
+        {natalOnLines.length > 0 && <> It also links to your natal {natalOnLines.join(', ')}.</>}
+      </p>
+
+      <ul className="sarvatobhadra-direction-list">
+        {lines.map((d) => {
+          const transits = [...new Set(d.cells.flatMap((c) => c.transits))];
+          const natal = [...new Set(d.cells.flatMap((c) => c.natal))];
+          return (
+            <li key={d.label}>
+              <p className="sarvatobhadra-direction-label">
+                <span aria-hidden="true">{d.arrow}</span> {d.label}
+              </p>
+              <p className="sarvatobhadra-direction-summary">
+                {transits.length > 0 && <>Transiting {joinList(transits)} {transits.length > 1 ? 'reach' : 'reaches'} {where} along this line. </>}
+                {natal.length > 0 && <>It ties {where} to your natal {joinList(natal)}, so whatever touches {where} also echoes on {natal.length > 1 ? 'those points' : 'that point'}. </>}
+                {transits.length === 0 && natal.length === 0 && <>Nothing transiting or natal sits along this line right now.</>}
+              </p>
+              <ul className="sarvatobhadra-direction-cells">
+                {d.cells.map((c) => {
+                  const empty = !c.transits.length && !c.natal.length && !c.role && !c.tags.length;
+                  return (
+                    <li key={c.name} className={empty ? 'sarvatobhadra-direction-cell-empty' : undefined}>
+                      <span className="sarvatobhadra-direction-cell-name">{c.name}</span>
+                      <span className="sarvatobhadra-direction-cell-kind"> {c.kind}</span>
+                      {c.role && <span className="sarvatobhadra-direction-cell-kind"> · your {c.role.role} star</span>}
+                      {c.transits.length > 0 && (
+                        <span className="sarvatobhadra-direction-row">
+                          Transiting now: <strong>{c.transits.join(', ')}</strong>
+                        </span>
+                      )}
+                      {c.natal.length > 0 && (
+                        <span className="sarvatobhadra-direction-row">
+                          Your natal: <span className="sarvatobhadra-direction-natal">{c.natal.join(', ')}</span>
+                        </span>
+                      )}
+                      {c.tags.length > 0 && (
+                        <span className="sarvatobhadra-direction-row">
+                          Sun&apos;s shadow point:{' '}
+                          <span className="sarvatobhadra-direction-tag">{c.tags.map((t) => `~${t.tag} (${t.label})`).join(', ')}</span>
+                        </span>
+                      )}
+                      {empty && <span className="sarvatobhadra-direction-row"> Nothing here right now</span>}
+                    </li>
+                  );
+                })}
+              </ul>
+            </li>
+          );
+        })}
+      </ul>
+
+      {piercers.length > 0 && (
+        <>
+          <p className="sarvatobhadra-upagraha-heading sarvatobhadra-selected-subheading">What the piercing grahas mean</p>
+          {piercers.map((p) => (
+            <p key={p} className="sarvatobhadra-upagraha-item">
+              <strong>{p}</strong> — {NAKSHATRA_VEDHA_EFFECTS[p]}
+            </p>
+          ))}
+        </>
+      )}
+
+      <p className="sarvatobhadra-selected-footer">Clear Selection to go back to the {modeLabel} reading.</p>
+    </div>
+  );
+}
+
+function joinList(items) {
+  if (items.length < 2) return items.join('');
+  return `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}`;
+}
+
+function emptyCellLabel(cell) {
+  if (cell.row === SARVATOBHADRA_CENTER_CELL.row && cell.col === SARVATOBHADRA_CENTER_CELL.col) return 'the centre';
+  if (SARVATOBHADRA_CORNER_CELLS.some(([r, c]) => r === cell.row && c === cell.col)) return 'a corner cell';
+  return 'an empty cell';
 }
 
 function SunVedhaPanel({ upagrahas, natalPointsByNakshatra, planetsByNakshatra }) {
