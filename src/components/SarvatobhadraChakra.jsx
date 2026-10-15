@@ -419,8 +419,9 @@ function SelectedCellPanel({
         name: nakshatra.trim(),
         transits: (planetsByNakshatra[nakshatra] ?? []).map((p) => p.planet),
         natal: natalPointsByNakshatra[nakshatra] ?? [],
+        kind: 'nakshatra',
         role: personalRoles[nakshatra.trim()] ?? null,
-        tags: (upagrahasByNakshatra[nakshatra] ?? []).map((u) => u.tag),
+        tags: upagrahasByNakshatra[nakshatra] ?? [],
       };
     }
     const natal = natalChart.planets.filter((p) => p.rashi === content.rashi).map((p) => p.planet);
@@ -429,6 +430,7 @@ function SelectedCellPanel({
       name: RASHIS[content.rashi],
       transits: transitPlanets.filter((p) => p.rashi === content.rashi).map((p) => p.planet),
       natal,
+      kind: 'sign',
       role: null,
       tags: [],
     };
@@ -467,7 +469,7 @@ function SelectedCellPanel({
           {here.role && <>{here.role.role} star — {here.role.meaning}. </>}
           {here.transits.length > 0 && <>Transiting {here.transits.join(', ')} {here.transits.length > 1 ? 'are' : 'is'} here. </>}
           {here.natal.length > 0 && <>Your natal {here.natal.join(', ')} {here.natal.length > 1 ? 'sit' : 'sits'} here. </>}
-          {here.tags.length > 0 && <>Carries {here.tags.map((t) => `~${t}`).join(', ')} from the Sun right now.</>}
+          {here.tags.length > 0 && <>Carries {here.tags.map((t) => `~${t.tag} (${t.label})`).join(', ')} from the Sun right now.</>}
         </p>
       )}
 
@@ -486,27 +488,51 @@ function SelectedCellPanel({
       </p>
 
       <ul className="sarvatobhadra-direction-list">
-        {lines.map((d) => (
-          <li key={d.label}>
-            <span className="sarvatobhadra-direction-label">
-              <span aria-hidden="true">{d.arrow}</span> {d.label}
-            </span>
-            <span className="sarvatobhadra-direction-cells">
-              {d.cells.map((c, i) => (
-                <span key={c.name}>
-                  {i > 0 && ' · '}
-                  <span className={c.transits.length || c.natal.length || c.role ? 'sarvatobhadra-direction-cell-active' : undefined}>
-                    {c.name}
-                  </span>
-                  {c.role && <> ({c.role.role})</>}
-                  {c.transits.length > 0 && <strong> {c.transits.join(' ')}</strong>}
-                  {c.natal.length > 0 && <span className="sarvatobhadra-direction-natal"> N: {c.natal.join(' ')}</span>}
-                  {c.tags.length > 0 && <span className="sarvatobhadra-direction-tag"> {c.tags.map((t) => `~${t}`).join(' ')}</span>}
-                </span>
-              ))}
-            </span>
-          </li>
-        ))}
+        {lines.map((d) => {
+          const transits = [...new Set(d.cells.flatMap((c) => c.transits))];
+          const natal = [...new Set(d.cells.flatMap((c) => c.natal))];
+          return (
+            <li key={d.label}>
+              <p className="sarvatobhadra-direction-label">
+                <span aria-hidden="true">{d.arrow}</span> {d.label}
+              </p>
+              <p className="sarvatobhadra-direction-summary">
+                {transits.length > 0 && <>Transiting {joinList(transits)} {transits.length > 1 ? 'reach' : 'reaches'} {where} along this line. </>}
+                {natal.length > 0 && <>It ties {where} to your natal {joinList(natal)}, so whatever touches {where} also echoes on {natal.length > 1 ? 'those points' : 'that point'}. </>}
+                {transits.length === 0 && natal.length === 0 && <>Nothing transiting or natal sits along this line right now.</>}
+              </p>
+              <ul className="sarvatobhadra-direction-cells">
+                {d.cells.map((c) => {
+                  const empty = !c.transits.length && !c.natal.length && !c.role && !c.tags.length;
+                  return (
+                    <li key={c.name} className={empty ? 'sarvatobhadra-direction-cell-empty' : undefined}>
+                      <span className="sarvatobhadra-direction-cell-name">{c.name}</span>
+                      <span className="sarvatobhadra-direction-cell-kind"> {c.kind}</span>
+                      {c.role && <span className="sarvatobhadra-direction-cell-kind"> · your {c.role.role} star</span>}
+                      {c.transits.length > 0 && (
+                        <span className="sarvatobhadra-direction-row">
+                          Transiting now: <strong>{c.transits.join(', ')}</strong>
+                        </span>
+                      )}
+                      {c.natal.length > 0 && (
+                        <span className="sarvatobhadra-direction-row">
+                          Your natal: <span className="sarvatobhadra-direction-natal">{c.natal.join(', ')}</span>
+                        </span>
+                      )}
+                      {c.tags.length > 0 && (
+                        <span className="sarvatobhadra-direction-row">
+                          Sun&apos;s shadow point:{' '}
+                          <span className="sarvatobhadra-direction-tag">{c.tags.map((t) => `~${t.tag} (${t.label})`).join(', ')}</span>
+                        </span>
+                      )}
+                      {empty && <span className="sarvatobhadra-direction-row"> Nothing here right now</span>}
+                    </li>
+                  );
+                })}
+              </ul>
+            </li>
+          );
+        })}
       </ul>
 
       {piercers.length > 0 && (
@@ -523,6 +549,11 @@ function SelectedCellPanel({
       <p className="sarvatobhadra-selected-footer">Clear Selection to go back to the {modeLabel} reading.</p>
     </div>
   );
+}
+
+function joinList(items) {
+  if (items.length < 2) return items.join('');
+  return `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}`;
 }
 
 function emptyCellLabel(cell) {
